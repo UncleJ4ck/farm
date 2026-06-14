@@ -84,11 +84,19 @@ body::after {
 .atmos-scene {
   position: absolute;
   inset: 0;
-  background: url("../img/farm-bg.svg") no-repeat center bottom;
+  background: url("../img/scarecrow-bg.jpg") no-repeat center center;
   background-size: cover;
-  opacity: 0.5;
-  // a near-still breathing so the moon haze feels alive
-  animation: scene-breathe 15s ease-in-out infinite;
+  opacity: 0.22;
+  // a near-still breathing so the figure feels like it shifts in the dark
+  animation: scene-breathe 16s ease-in-out infinite;
+}
+
+// scrim over the reading column so the figure never washes the text
+.atmos::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(70% 60% at 50% 42%, rgba(8, 9, 5, 0.5), transparent 78%);
 }
 
 .atmos-fog {
@@ -121,14 +129,14 @@ body::after {
   50%      { transform: translate3d(-6%, -2%, 0); }
 }
 @keyframes scene-breathe {
-  0%, 100% { opacity: 0.34; }
-  50%      { opacity: 0.46; }
+  0%, 100% { opacity: 0.18; }
+  50%      { opacity: 0.27; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .atmos-scene,
   .atmos-fog { animation: none; }
-  .atmos-scene { opacity: 0.4; }
+  .atmos-scene { opacity: 0.22; }
 }
 
 a {
