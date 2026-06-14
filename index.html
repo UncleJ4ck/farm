@@ -1,0 +1,50 @@
+---
+layout: default
+title: home
+---
+
+<section class="hero">
+  <div class="hero-top">
+    <img src="{{ '/assets/img/avatar.jpg' | relative_url }}"
+         alt="sc4r3cr0w"
+         class="hero-avatar"
+         width="72"
+         height="72">
+    <div class="hero-identity">
+      <div class="hero-alias">sc4r3cr0w<span class="hero-cursor" aria-hidden="true"></span></div>
+      <div class="hero-sep" aria-hidden="true">────────────────────────────────</div>
+      <p class="hero-tagline">
+        building and breaking stuff.<br>
+        security researcher &middot; cve author &middot; systems programmer
+      </p>
+    </div>
+  </div>
+  <p class="hero-meta">{{ site.author.location }}</p>
+</section>
+
+<section>
+  <div class="section-head">
+    <span class="sh-label">recent</span>
+    <span class="sh-line" aria-hidden="true"></span>
+  </div>
+
+  <div class="post-list">
+    {% for post in site.posts limit:8 %}
+    <article class="post-stub">
+      <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%Y.%m.%d" }}</time>
+      <a href="{{ post.url | relative_url }}" class="stub-title">{{ post.title }}</a>
+      {% if post.tags.first %}<span class="tag">{{ post.tags.first }}</span>{% endif %}
+    </article>
+    {% endfor %}
+
+    {% if site.posts.size == 0 %}
+    <p style="color: #3f3d3a; font-size: 0.8rem;">no posts yet.</p>
+    {% endif %}
+  </div>
+
+  {% if site.posts.size > 8 %}
+  <a href="{{ '/research' | relative_url }}" class="view-all-link">view all →</a>
+  {% endif %}
+</section>
+
+<p class="site-quote">there's nothing to fear but fear itself</p>

@@ -1,0 +1,22 @@
+---
+layout: default
+title: research
+---
+
+<header class="page-head">
+  <h1>research</h1>
+</header>
+
+<div class="post-list">
+  {% for post in site.posts %}
+  <article class="post-stub">
+    <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%Y.%m.%d" }}</time>
+    <a href="{{ post.url | relative_url }}" class="stub-title">{{ post.title }}</a>
+    {% if post.tags.first %}<span class="tag">{{ post.tags.first }}</span>{% endif %}
+  </article>
+  {% endfor %}
+
+  {% if site.posts.size == 0 %}
+  <p style="color: #3f3d3a; font-size: 0.8rem; padding: 1rem 0;">nothing published yet.</p>
+  {% endif %}
+</div>

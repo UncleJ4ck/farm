@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  {%- include head.html -%}
+  <body>
+    {%- include nav.html -%}
+    <main class="site-main" id="main-content" tabindex="-1">
+      {{ content }}
+    </main>
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <span class="footer-copy">{{ site.author.alias }} &middot; {{ site.time | date: "%Y" }}</span>
+        <nav class="footer-links" aria-label="Social links">
+          <a href="https://github.com/{{ site.author.github }}" target="_blank" rel="noopener noreferrer">github</a>
+          <a href="https://twitter.com/{{ site.author.twitter }}" target="_blank" rel="noopener noreferrer">x</a>
+          <a href="https://medium.com/@{{ site.author.medium }}" target="_blank" rel="noopener noreferrer">medium</a>
+        </nav>
+      </div>
+    </footer>
+    <script src="{{ '/assets/js/main.js' | relative_url }}"></script>
+  </body>
+</html>

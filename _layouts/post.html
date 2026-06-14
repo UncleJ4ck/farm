@@ -1,0 +1,32 @@
+---
+layout: default
+---
+
+<article class="post">
+  <header class="post-header">
+    <div class="post-meta">
+      <time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%Y.%m.%d" }}</time>
+      {%- for tag in page.tags -%}
+        <span class="tag">{{ tag }}</span>
+      {%- endfor -%}
+    </div>
+    <h1 class="post-title">{{ page.title }}</h1>
+    {%- if page.subtitle -%}
+      <p class="post-subtitle">{{ page.subtitle }}</p>
+    {%- endif -%}
+    {%- if page.tldr -%}
+      <div class="tldr" role="note">
+        <span class="tldr-label" aria-hidden="true">tl;dr</span>
+        <p>{{ page.tldr }}</p>
+      </div>
+    {%- endif -%}
+  </header>
+
+  <div class="prose">
+    {{ content }}
+  </div>
+
+  <footer class="post-footer">
+    <a href="{{ '/research' | relative_url }}" class="back-link">← back to research</a>
+  </footer>
+</article>

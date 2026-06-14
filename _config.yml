@@ -1,0 +1,43 @@
+title: "thefarm"
+description: "notes from the farm. building and breaking stuff."
+
+author:
+  name: "UncleJ4ck"
+  alias: "sc4r3cr0w"
+  github: "UNcleJ4ck"
+  twitter: "UncleJa4ck"
+  medium: "jack_crane"
+  location: "the farm"
+
+baseurl: ""
+url: "https://farm.github.io"
+
+# Build
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+
+# Sass
+sass:
+  style: compressed
+
+# Permalink - clean, memorable
+permalink: /:title/
+
+# Markdown
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    block:
+      line_numbers: false
+
+# Exclude from build
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor/
+  - "*.sh"
+  - README.md
