@@ -4,7 +4,7 @@ title: "The License Plate Password"
 subtitle: "wolves, sheep, and why a parking lot did what aircrack couldn't"
 date: 2022-08-31
 tags: [social-engineering, osint, wireless]
-category: writeups
+category: research
 tldr: "Spent hours trying to hack my brother's WiFi technically. Walked past his car and it was done in thirty seconds."
 ---
 

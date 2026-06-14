@@ -10,7 +10,9 @@ tldr: "Scan one restaurant QR code and the POS self-order API hands you the floo
 
 ## the access model, because it is the whole point
 
-POS self-ordering has no accounts and no login. Every table in the restaurant carries a QR code with two values: one `access_token` for the whole point-of-sale config (it says which restaurant you are ordering from, not who you are) and a per-table `identifier`. Every `/pos-self-order/*` endpoint authorizes a caller with `_verify_pos_config(access_token)`, which only checks that the shared config token is valid. Every customer at every table presents the same token. That is by design, nobody wants to make an account to order a burger. It also means the server has to be careful about every field it returns and every write it accepts, because the credential is shared by the whole room.
+POS self-ordering has no accounts and no login. Every table in the restaurant carries a QR code with two values: one `access_token` for the whole point-of-sale config (it says which restaurant you are ordering from, not who you are) and a per-table `identifier`. Every `/pos-self-order/*` endpoint authorizes a caller with `_verify_pos_config(access_token)` (`orders.py:177-187`), which only checks that the shared config token is valid. Every customer at every table presents the same token. That is by design, nobody wants to make an account to order a burger. It also means the server has to be careful about every field it returns and every write it accepts, because the credential is shared by the whole room.
+
+The exact construction matters for the threat model. The config `access_token` is `uuid.uuid4().hex[:16]`, 16 hex chars, one per restaurant (`pos_config.py:117`), baked into the QR URL `{base}?access_token={access_token}&table_identifier={identifier}` (`pos_config.py:276`). The `table_identifier` is `uuid.uuid4().hex[:8]`, 8 hex chars, one per table (`pos_restaurant.py:22`). So the credential on the QR is restaurant-scoped, not customer-scoped, and the per-table identifier is an addressing label, not a secret: `/pos-self/data` hands the whole floor plan's identifiers to anyone on page load. Everything downstream has to assume the caller already holds all of those.
 
 Found with Ilyase Dehy. I tested everything below on a fresh `odoo:19.0` (image built 2026-04-21), seeded with five tables and six orders.
 
@@ -100,6 +102,8 @@ Honest note on this one. `remove-order` checks the per-order `access_token` with
 3. Order `uuid` returned plus `sync_from_ui` taking it with no ownership check. This is the write primitive. Open on the image I tested. This is the one that turns a read leak into editing a stranger's financial record.
 
 ## severity and resolution
+
+I submitted it at `AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N` = 8.2. The C:H is deliberate and worth defending: within the POS self-order component for one config, the attacker obtains 100% of the confidential data it manages, every active customer's email, phone, and per-order token, across every table, with no cap on how many. C:L is "no control over what is obtained, or limited loss"; here the attacker controls the enumeration (`/pos-self/data` hands out all identifiers, `order_access_tokens: []` works) and gets the complete PII set. The data set is narrow but it is the whole set, so C:H fits and C:L does not.
 
 Accepted at Medium. Odoo settled the rating after downgrading attack complexity (you need to be near the restaurant for the token) and arguing email plus name is not highly confidential. The cross-table order visibility was a deliberate 19.0 feature and was changed in 19.2. I think the accepted-risk call is fair for the identifiers and weak for the write path, where the consequence is editing someone else's order and redirecting their receipt, not reading a token they could scan off a table. No CVE was assigned.
 

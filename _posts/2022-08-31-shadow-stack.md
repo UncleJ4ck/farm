@@ -4,7 +4,7 @@ title: "Shadow Stack"
 subtitle: "thirty years of stack exploitation history, and why this defense is finally different"
 date: 2022-08-31
 tags: [exploit-dev, linux, windows, low-level]
-category: writeups
+category: research
 tldr: "Buffer overflow defenses keep getting bypassed. Shadow stack is the first one that attacks the root problem: it keeps a hardware-protected copy of return addresses that regular code literally cannot overwrite."
 ---
 

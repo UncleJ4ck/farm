@@ -4,7 +4,7 @@ title: "Your Title Here"
 subtitle: "one-line description"
 date: YYYY-MM-DD
 tags: [tag1, tag2]
-category: writeups   # writeups | cves | research
+category: research   # research | cves | writeups
 tldr: "one sentence summary shown at the top of the post."
 ---
 

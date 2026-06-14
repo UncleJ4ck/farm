@@ -4,7 +4,7 @@ title: "Dead SDR Society"
 subtitle: "building an RF transmitter, capturing the signal, and killing my RTL-SDR in the process"
 date: 2022-08-31
 tags: [hardware, rf, sdr, low-level]
-category: writeups
+category: research
 tldr: "RF transmissions are everywhere and most are unencrypted. Walked through building a 868 MHz transmitter with Arduino and RFM12B, capturing it with RTL-SDR, decoding with GNURadio and Inspectrum. Then I fried the SDR."
 ---
 

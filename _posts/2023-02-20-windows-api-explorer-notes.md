@@ -4,7 +4,7 @@ title: "Ring 3 Field Notes"
 subtitle: "NT internals, syscall mechanics, PE format and the memory model, before any shellcode"
 date: 2023-02-20
 tags: [windows, low-level, maldev, internals]
-category: writeups
+category: research
 tldr: "You cannot write Windows offensive tooling without knowing what you are standing on. This covers the kernel/user boundary, NT architecture, syscall mechanics, PE format, and memory layout. The stuff that should come before injection tutorials."
 ---
 

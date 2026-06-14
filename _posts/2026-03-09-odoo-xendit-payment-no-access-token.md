@@ -92,6 +92,8 @@ The same shape, `auth='public'` plus `sudo()` plus no `check_access_token`, sits
 
 I argued High on integrity. An unauthenticated request changes a financial record and pulls an order through confirmation, delivery, and stock reservation. Odoo pushed back and settled Medium: in their reading the attacker pays someone else's order with their own card or makes it fail, a bounded outcome rather than total loss of integrity. That is a defensible call on the realistic blast radius and the report was accepted at Medium. The bug underneath does not change with the label.
 
+By the numbers I scored it `AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:H/A:L` = 8.6, CWE-862 (Missing Authorization): an unauthenticated request mutates a financial record (I:H) and kicks off fulfillment that reserves stock (A:L). The exact pattern has precedent: [CVE-2025-14461](https://nvd.nist.gov/vuln/detail/CVE-2025-14461) (CVSS 5.3, identical CWE-862 on the Xendit WooCommerce plugin, unauthenticated order completion via a missing authorization check on the callback) and [CVE-2021-23178](https://nvd.nist.gov/vuln/detail/CVE-2021-23178) (CVSS 7.5, Odoo ≤15.0, payment token reuse across users from missing authorization). Same missing line, three products.
+
 ## fix status, verified not assumed
 
 The fix exists in Odoo's source tree, commit `[FIX] payment_xendit: link access token to the current transaction`, which adds the missing guard and updates the client JS to send the token like every other provider:
@@ -109,5 +111,8 @@ But the controller block I pasted above is the one running in the `odoo:19.0` im
 ## references
 
 - [payment_xendit controller on GitHub](https://github.com/odoo/odoo/blob/19.0/addons/payment_xendit/controllers/main.py)
+- [payment_authorize controller (the guarded sibling)](https://github.com/odoo/odoo/blob/19.0/addons/payment_authorize/controllers/main.py)
 - [CWE-862: Missing Authorization](https://cwe.mitre.org/data/definitions/862.html)
 - [Odoo payment access tokens (payment/utils.py)](https://github.com/odoo/odoo/blob/19.0/addons/payment/utils.py)
+- [CVE-2025-14461 (Xendit WooCommerce, same CWE-862)](https://nvd.nist.gov/vuln/detail/CVE-2025-14461)
+- [CVE-2021-23178 (Odoo payment token reuse)](https://nvd.nist.gov/vuln/detail/CVE-2021-23178)
