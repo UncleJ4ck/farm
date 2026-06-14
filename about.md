@@ -25,5 +25,6 @@ Arch Linux · Hyprland · Wayland-native · kitty
 ## find me
 
 - [github](https://github.com/UNcleJ4ck)
+- [linkedin](https://www.linkedin.com/in/unclej4ck/)
 - [x / twitter](https://twitter.com/UncleJa4ck)
 - [medium](https://medium.com/@jack_crane)
