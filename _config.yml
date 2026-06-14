@@ -41,3 +41,4 @@ exclude:
   - vendor/
   - "*.sh"
   - README.md
+  - DESIGN.md

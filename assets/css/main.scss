@@ -3,25 +3,27 @@
 
 $font: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
 
-$bg:          #080808;
-$bg-card:     #0d0d0d;
-$bg-lift:     #121212;
+// cornfield-night black — a faint warm-green undertone, the farm after dusk
+$bg:          #0a0b07;
+$bg-card:     #0e0f0a;
+$bg-lift:     #14150d;
 
-// crimson — pulled from the coat and red round glasses in the avatar
-$red:         #c41e3a;
-$red-light:   #e0354a;
-$red-dim:     #7a1530;
-$red-faint:   #1a0508;
+// fear toxin — sickly chartreuse pulled from the gas and the burlap mask
+$acc:         #aeb82e;
+$acc-light:   #c9d156;
+$acc-dim:     #71791f;
+$acc-faint:   #14160a;
 
-// pale blue-grey from the avatar background — used sparingly
-$ice:         #b8d4e8;
+// burlap straw — the sackcloth, warmth used sparingly
+$straw:       #c2a35f;
 
-$text:        #ddd8cc;
-$text-sec:    #7e7a72;
-$text-muted:  #3f3d3a;
+// bone / parchment
+$text:        #d8d3c1;
+$text-sec:    #8c8878;
+$text-muted:  #47453b;
 
-$border:      #191919;
-$border-mid:  #252525;
+$border:      #16170e;
+$border-mid:  #25261a;
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -58,15 +60,25 @@ body::before {
   z-index: 9998;
 }
 
+// vignette — the dark closing in at the edges of the field
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(120% 90% at 50% 32%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+  z-index: 9997;
+}
+
 a {
-  color: $red;
+  color: $acc;
   text-decoration: none;
   transition: color 150ms ease;
 
-  &:hover { color: $red-light; }
+  &:hover { color: $acc-light; }
 
   &:focus-visible {
-    outline: 1px solid $red;
+    outline: 1px solid $acc;
     outline-offset: 3px;
     border-radius: 2px;
   }
@@ -100,7 +112,7 @@ a {
   flex-shrink: 0;
   transition: color 150ms;
 
-  &:hover { color: $red; }
+  &:hover { color: $acc; }
 }
 
 .nav-links {
@@ -130,7 +142,7 @@ a {
         left: 0;
         right: 0;
         height: 1px;
-        background: $red;
+        background: $acc;
       }
     }
   }
@@ -235,9 +247,9 @@ a {
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
-  // the pale blue from the image becomes a subtle ring
-  box-shadow: 0 0 0 2px $border, 0 0 0 3px $red-dim;
-  filter: contrast(1.05) brightness(0.95);
+  // burlap ring with a faint toxin haze bleeding off the mask
+  box-shadow: 0 0 0 2px $bg, 0 0 0 3px $straw, 0 0 18px -2px rgba($acc, 0.28);
+  filter: contrast(1.06) brightness(0.96) saturate(1.05);
 }
 
 .hero-identity {
@@ -248,17 +260,19 @@ a {
 .hero-alias {
   font-size: 1.625rem;
   font-weight: 800;
-  color: $red;
+  color: $acc;
   letter-spacing: -0.03em;
   line-height: 1;
   margin-bottom: 0.5rem;
+  // minimal toxin glow — gas catching the light
+  text-shadow: 0 0 12px rgba($acc, 0.35);
 }
 
 .hero-cursor {
   display: inline-block;
   width: 0.6em;
   height: 1.2em;
-  background: $red;
+  background: $acc;
   vertical-align: text-bottom;
   margin-left: 3px;
   opacity: 0.75;
@@ -297,7 +311,7 @@ a {
 
   &::before {
     content: '$ ';
-    color: $red-dim;
+    color: $acc-dim;
     font-weight: 700;
   }
 }
@@ -354,13 +368,13 @@ a {
     font-size: 0.875rem;
     transition: color 150ms;
 
-    &:hover { color: $red; }
+    &:hover { color: $acc; }
   }
 
   .tag {
     font-size: 0.6rem;
-    color: $red-dim;
-    border: 1px solid $red-faint;
+    color: $acc-dim;
+    border: 1px solid $acc-faint;
     padding: 0.1em 0.45em;
     border-radius: 2px;
     letter-spacing: 0.05em;
@@ -385,8 +399,8 @@ a {
   padding: 2.5rem 0 0;
   letter-spacing: 0.01em;
 
-  &::before { content: '\201C'; margin-right: 0.15em; color: $red-dim; }
-  &::after  { content: '\201D'; margin-left:  0.15em; color: $red-dim; }
+  &::before { content: '\201C'; margin-right: 0.15em; color: $acc-dim; }
+  &::after  { content: '\201D'; margin-left:  0.15em; color: $acc-dim; }
 }
 
 .page-head {
@@ -401,7 +415,7 @@ a {
 
     &::before {
       content: '> ';
-      color: $red-dim;
+      color: $acc-dim;
       font-weight: 400;
     }
   }
@@ -422,7 +436,7 @@ a {
     padding-bottom: 0.5rem;
     border-bottom: 1px solid $border;
 
-    &::before { content: '## '; color: $red-dim; font-weight: 400; }
+    &::before { content: '## '; color: $acc-dim; font-weight: 400; }
   }
 
   h3 {
@@ -448,19 +462,19 @@ a {
   em     { font-style: italic; }
 
   a {
-    color: $red;
+    color: $acc;
     text-decoration: underline;
-    text-decoration-color: $red-faint;
+    text-decoration-color: $acc-faint;
     text-underline-offset: 3px;
     transition: text-decoration-color 150ms;
 
-    &:hover { text-decoration-color: $red; }
+    &:hover { text-decoration-color: $acc; }
   }
 
   code {
     font-family: $font;
     font-size: 0.83em;
-    color: $red;
+    color: $acc;
     background: $bg-card;
     padding: 0.15em 0.4em;
     border-radius: 3px;
@@ -470,7 +484,7 @@ a {
   pre {
     background: $bg-card;
     border: 1px solid $border;
-    border-left: 3px solid $red-dim;
+    border-left: 3px solid $acc-dim;
     border-radius: 0 4px 4px 0;
     padding: 1.25rem;
     overflow-x: auto;
@@ -491,7 +505,7 @@ a {
   .highlight {
     background: $bg-card;
     border: 1px solid $border;
-    border-left: 3px solid $red-dim;
+    border-left: 3px solid $acc-dim;
     border-radius: 0 4px 4px 0;
     margin: 1.75rem 0;
     overflow: hidden;
@@ -512,7 +526,7 @@ a {
   }
 
   blockquote {
-    border-left: 3px solid $red;
+    border-left: 3px solid $acc;
     background: $bg-card;
     padding: 0.75rem 1.125rem;
     margin: 1.75rem 0;
@@ -529,7 +543,7 @@ a {
       margin-bottom: 0.3rem;
       line-height: 1.75;
 
-      &::marker { color: $red-dim; }
+      &::marker { color: $acc-dim; }
     }
   }
 
@@ -596,8 +610,8 @@ a {
 
   .tag {
     font-size: 0.6rem;
-    color: $red-dim;
-    border: 1px solid $red-faint;
+    color: $acc-dim;
+    border: 1px solid $acc-faint;
     padding: 0.1em 0.45em;
     border-radius: 2px;
     letter-spacing: 0.05em;
@@ -626,7 +640,7 @@ a {
   align-items: start;
   background: $bg-card;
   border: 1px solid $border;
-  border-left: 3px solid $red;
+  border-left: 3px solid $acc;
   border-radius: 0 4px 4px 0;
   padding: 0.875rem 1rem;
   margin-top: 1.25rem;
@@ -636,7 +650,7 @@ a {
     font-weight: 800;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: $red;
+    color: $acc;
     padding-top: 0.3em;
   }
 
@@ -679,7 +693,7 @@ a {
   transition: color 150ms, border-color 150ms;
   z-index: 2;
 
-  &:hover { color: $red; border-color: $red-dim; }
+  &:hover { color: $acc; border-color: $acc-dim; }
 }
 
 .projects-grid {
@@ -699,7 +713,7 @@ a {
 
   &:hover {
     background: $bg-card;
-    .project-name { color: $red-light; }
+    .project-name { color: $acc-light; }
   }
 }
 
@@ -719,7 +733,7 @@ a {
 .project-name {
   font-size: 0.875rem;
   font-weight: 700;
-  color: $red;
+  color: $acc;
   transition: color 150ms;
 }
 
@@ -754,7 +768,7 @@ a {
 .error-code {
   font-size: 5rem;
   font-weight: 800;
-  color: $red;
+  color: $acc;
   letter-spacing: -0.06em;
   line-height: 1;
   margin-bottom: 0.75rem;
@@ -769,7 +783,7 @@ a {
 // Rouge syntax tokens — warm palette matching the crimson theme
 .highlight {
   .c,  .c1, .cm, .cs { color: $text-muted; font-style: italic; }
-  .k,  .kd, .kn, .kp, .kr, .kt { color: #7aa2d4; font-weight: 600; }
+  .k,  .kd, .kn, .kp, .kr, .kt { color: #c9d156; font-weight: 600; }
   .s,  .s1, .s2, .sb, .sc, .sd, .si, .sx { color: #98c4aa; }
   .n,  .nn { color: $text; }
   .nb, .bp { color: #c4a882; }
@@ -777,12 +791,12 @@ a {
   .mi, .mf, .mh, .mo { color: #c49060; }
   .o,  .ow { color: $text-sec; }
   .p  { color: $text-sec; }
-  .na { color: $red-dim; }
-  .nt { color: $red-dim; }
+  .na { color: $acc-dim; }
+  .nt { color: $acc-dim; }
   .err { color: #c94c4c; background: none; }
   .gd { color: #c94c4c; }
   .gi { color: #98c4aa; }
-  .gh { color: $red; font-weight: 700; }
+  .gh { color: $acc; font-weight: 700; }
 }
 
 @media (max-width: 640px) {
