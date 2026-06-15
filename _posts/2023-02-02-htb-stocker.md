@@ -1,0 +1,75 @@
+---
+layout: post
+title: "HTB: Stocker"
+subtitle: "NoSQL auth bypass into a server-side XSS PDF LFI that leaked a reused dbURI password, then a sudo node wildcard path traversal to root"
+date: 2023-02-02
+tags: [htb, linux, nosql-injection, xss, lfi, privesc]
+category: writeups
+tldr: "An Express/Mongo dev vhost fell to a NoSQL auth bypass that reached the order API. The order title got rendered into a generated PDF, so an iframe pointed at a local file read index.js and leaked the Mongo dbURI password. That password was reused for SSH, and a sudo grant on node with a wildcard path let me traverse out and run my own script as root."
+---
+
+## the box
+
+Stocker is a Linux box running OpenSSH 8.2p1 and nginx 1.18.0. The main site redirects to `stocker.htb` and is a static Eleventy template. The interesting surface is the `dev.stocker.htb` vhost, an Express app backed by MongoDB.
+
+## recon
+
+nmap gave me 22 and 80. The root host just served a static brochure site, so I went looking for vhosts and found `dev.stocker.htb`, which served a `/login` page. The `X-Powered-By: Express` header told me Node, and an Express plus Mongo stack means NoSQL injection is on the table.
+
+## foothold
+
+The login took JSON. Instead of guessing credentials I sent Mongo query operators so the lookup matched any user:
+
+```json
+{"username":{"$ne":null},"password":{"$ne":null}}
+```
+
+```
+Content-Type: application/json
+```
+
+`$ne: null` makes the `findOne` match the first document where those fields are not null, so I got a valid session without knowing a password. That session reached the authenticated area and the `/api/order` endpoint.
+
+The app builds a basket and posts order data as JSON. The order is rendered into a generated PDF, and the only field reflected into that PDF is the title. Server-side rendering of attacker HTML into a PDF means I can inject an iframe that loads a local file:
+
+```html
+<iframe src=file:///etc/passwd height=1000px width=800px></iframe>
+```
+
+The PDF came back with `/etc/passwd` in it, confirming local file read and giving me the user `angoose`.
+
+## user
+
+I pointed the iframe at the app's own source to pull config:
+
+```html
+<iframe src=file:///var/www/dev/index.js height=1000px width=800px></iframe>
+```
+
+`index.js` carried the Mongo connection string with credentials inline:
+
+```js
+const dbURI = "mongodb://dev:IHeardPassphrasesArePrettySecure@localhost/dev?authSource=admin&w=1";
+```
+
+The password `IHeardPassphrasesArePrettySecure` was reused for the system account. I logged in over SSH as `angoose` and grabbed the user flag.
+
+## root
+
+`sudo -l` showed I could run any JavaScript file as root through a wildcard path:
+
+```
+/usr/bin/node /usr/bin/scripts/*.js
+```
+
+The wildcard sits in the middle of a fixed path, but `node` resolves whatever path it is handed, so I traversed out of the scripts directory back to my home and ran my own script:
+
+```bash
+sudo /usr/bin/node /usr/local/scripts/../../../home/angoose/rev.js
+```
+
+The `../../../` walks back to `/`, then down into my home where my script lived. node executed it as root, and I read the root flag.
+
+## takeaway
+
+The NoSQL bypass came down to one `$ne` operator because the app passed user JSON straight into a Mongo query. Reflecting attacker input into a server-rendered PDF is a file-read primitive, and storing a Mongo password in source that gets reused for SSH chained it straight to a shell. The root grant looked locked down with a fixed path and a wildcard, but the wildcard never blocked `../`, so path traversal handed me arbitrary code as root.
