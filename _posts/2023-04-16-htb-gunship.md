@@ -63,8 +63,3 @@ When `pug.compile()` ran, it picked up the polluted `block` and emitted my `line
 ## the flag
 
 The flag came back as the contents of `/static/out` after I pointed the `execSync` command at the flag file on disk.
-
-## references
-
-- [Prototype pollution to RCE / AST injection, blog.p6.is](https://blog.p6.is/AST-Injection/)
-- [nandan-desai-extras, Gunship walkthrough](https://github.com/nandan-desai-extras/prototype-pollution/blob/master/gunship-walkthrough.md)

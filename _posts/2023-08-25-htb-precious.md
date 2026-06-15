@@ -77,8 +77,3 @@ The `git_set` value is the injected command. When root ran the script, it set th
 ## takeaway
 
 The PDF metadata gave away the exact pdfkit version, which mapped straight to a command-injection CVE. After that, reused plaintext creds and a root script feeding attacker-controlled YAML into an unsafe loader did the rest.
-
-## references
-
-- [0xdf: HTB Precious](https://0xdf.gitlab.io/2023/05/20/htb-precious.html)
-- [UNICORDev exploit for CVE-2022-25765 (pdfkit)](https://github.com/UNICORDev/exploit-CVE-2022-25765)

@@ -75,7 +75,3 @@ When the script reached the bare `find`, it ran my `/dev/shm/find` as root, drop
 ## takeaway
 
 The creds were sitting in client-side JS behind a cookie check, the printer trusted unsanitized input straight into a command, and the sudo rule kept PATH attacker-controlled. `SETENV` cancels out `secure_path`, so a grant on a script that calls even one bare command name is a PATH hijack waiting to happen.
-
-## references
-
-- [0xdf, HTB: Photobomb](https://0xdf.gitlab.io/2023/02/11/htb-photobomb.html)

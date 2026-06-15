@@ -99,7 +99,3 @@ That shell owned the root flag.
 ## takeaway
 
 Two patterns drive this box. First, SQL injection hidden behind a WebSocket, exploited by fronting it with an HTTP middleware so an off-the-shelf tool works. Second, password reuse turning one dumped credential into SSH access. The root step is a reminder that build-tool config files are code: a sudo rule that runs pyinstaller on a user-supplied `.spec` is the same as a sudo rule that runs arbitrary Python.
-
-## references
-
-- [0xdf: HTB Socket](https://0xdf.gitlab.io/2023/07/15/htb-socket.html)

@@ -139,7 +139,3 @@ After that `/bin/bash` carries the SUID bit, and `bash -p` gives a root shell. T
 ## takeaway
 
 The path-traversal check fails because it only thinks about `..` and forgets absolute paths, which is enough to leak the whole app and find the real bug. The email validator fails the same way, an unanchored `re.match` that only inspects the start. Building shell strings from user input with `shell=True` is the foothold, and Cypher injection plus `LOAD CSV` turns a search box into an out-of-band exfil channel. The privesc is the well-known `pip download` setup.py execution: downloading is not safe, because building an sdist runs its code.
-
-## references
-
-- [0xdf, HTB: OnlyForYou](https://0xdf.gitlab.io/2023/08/26/htb-onlyforyou.html)

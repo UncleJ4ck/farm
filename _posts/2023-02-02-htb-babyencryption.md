@@ -61,8 +61,3 @@ python3 decode.py
 ## the flag
 
 The decrypted string was the flag in `HTB{...}` form. Inverting a per-byte affine map is trivial when the alphabet is this small. Even without computing the inverse of `123 mod 256`, brute-forcing the printable range recovers the whole plaintext in one pass.
-
-## references
-
-- [Simon Bonnefoy: HTB BabyEncryption write-up](https://simonbonnefoy.github.io/posts/baby-encryption-wrt/)
-- [Austin Felix: BabyEncryption technical analysis](https://medium.com/@grumpyTofu/babyencryption-technical-analysis-hack-the-box-cryptography-9114bf06701a)

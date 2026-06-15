@@ -78,7 +78,3 @@ Then `/bin/bash -p` kept the effective root UID and dropped me into a root shell
 ## takeaway
 
 LaTeX renderers are a file-read sink waiting to happen, and `\lstinputlisting` reads any path the web user can. The blacklist tried to stop the dangerous commands but missed `\lstinputlisting` entirely, and even the blocked ones fell to hex escapes. Storing an htpasswd hash where that user can reach it leaked the basic-auth credential straight into a crackable hash. The root step was a classic world-writable cron target, and gnuplot's `system` command turned a plotting job into arbitrary root execution.
-
-## references
-
-- [0xdf, HTB: Topology](https://0xdf.gitlab.io/2023/11/04/htb-topology.html)

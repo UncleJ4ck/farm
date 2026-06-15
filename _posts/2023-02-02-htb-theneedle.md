@@ -53,8 +53,3 @@ Logging in as `Device_Admin` with `qS6-X/n]u>fVfAt!` dropped me onto the device,
 ## the flag
 
 The session returned the flag in `HTB{...}` form, the kind that names this for what it is, a huge blunder. A hardcoded telnet credential baked into shipped firmware is a static password anyone with the image can read. Pulling the filesystem and grepping for login was enough to walk straight in. The name fits: the credential was one config line buried in a full firmware image, a needle in the haystack.
-
-## references
-
-- [onezero: The Needle writeup](https://medium.com/@onezero_1_0/hack-the-box-the-needle-writeup-1e763f91fc44)
-- [Motasem Hamdan: Linux firmware analysis, The Needle](http://motasem-notes.net/hardware-hacking-p3-linux-firmware-analysis-hackthebox-the-needle/)

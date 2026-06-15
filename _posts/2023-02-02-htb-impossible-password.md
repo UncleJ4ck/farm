@@ -64,7 +64,3 @@ The `JNZ` at `0x00400968` (bytes `75 0c`) skips the flag call whenever the strin
 I saved the patch out of Ghidra and ran the patched binary. With the conditional gone, the second comparison no longer matters and `FUN_00400978` fires unconditionally, printing the flag. It is a short `HTB{...}` hex string.
 
 Patching is not the only way in. The success branch is reached whenever `strcmp` returns 0, so under a debugger you can let the program run to the `TEST EAX,EAX` and just zero `EAX` (or set ZF) before the `JNZ`, with no file edit at all. Either route forces the same `FUN_00400978` call.
-
-## references
-
-- [Impossible Password, Shaswata Das](https://medium.com/@shaswata56/impossible-password-hackthebox-reversing-challenge-8c98b8da6db6)

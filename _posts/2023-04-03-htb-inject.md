@@ -83,7 +83,3 @@ When the cron picked it up, ansible ran my task as root, and that got me the roo
 ## takeaway
 
 The chain is one mistake feeding the next. The LFI did not directly give code execution, but it leaked the exact dependency versions, which turned a guess into a known CVE. Pinning a vulnerable spring-cloud-function release is the real foothold. For root, a root process that blindly runs every file in a group-writable directory is a privilege escalation waiting for anyone in that group.
-
-## references
-
-- [0xdf - HTB: Inject](https://0xdf.gitlab.io/2023/07/08/htb-inject.html)

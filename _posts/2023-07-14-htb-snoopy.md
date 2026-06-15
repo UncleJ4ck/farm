@@ -141,9 +141,3 @@ The scan printed the flag content as a "No such file or directory" entry, which 
 ## takeaway
 
 Every step here is a misuse of legitimate functionality. A permissive zone transfer leaked infrastructure, a non-recursive `preg_replace` filter handed over a TSIG key, dynamic DNS plus an attacker-pointed mailserver hijacked a reset flow, and the privesc chain is two GTFOBins-style sudo entries. `git apply` and `clamscan -f` both turn a narrow grant into write or read as another user.
-
-## references
-
-- [0xdf: HTB Snoopy](https://0xdf.gitlab.io/2023/09/23/htb-snoopy.html)
-- [CVE-2023-23946: git apply path traversal](https://github.com/git/git/security/advisories/GHSA-r87m-v37r-cwfh)
-- [CVE-2023-20052: ClamAV DMG XXE](https://blog.talosintelligence.com/clamav-cve-2023-20052/)

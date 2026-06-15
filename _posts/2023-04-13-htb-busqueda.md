@@ -92,8 +92,3 @@ root-owned bash ran my script, set the SUID bit, and `bash -p` gave a root shell
 An eval-based library bug gave the foothold, credentials sat in a checked-out .git config, and a sudo script calling a helper by relative path let me control what root executed. Always pin helper scripts to absolute paths.
 
 The Gitea instance ran in Docker alongside a MySQL container on a `docker_gitea` network. Pulling the Gitea DB creds (`gitea:yuiu1hoiu4i5ho1uh`) and reusing them as the Gitea administrator password exposes the `scripts` repo, which holds the source of `system-checkup.py` and confirms the relative-path call.
-
-## references
-
-- [0xdf, HTB: Busqueda](https://0xdf.gitlab.io/2023/08/12/htb-busqueda.html)
-- [Busqueda - HackTheBox](https://www.hackthebox.com/machines/busqueda)

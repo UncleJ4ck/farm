@@ -32,8 +32,3 @@ The one measurement that mattered was the shortest pulse width. Everything downs
 ## the flag
 
 The ASCII decode produced the flag in `HTB{...}` form, the kind of string noting that debug interfaces show up in almost every embedded device. Pulling the baud rate off the shortest pulse is the whole trick for an unlabeled async serial dump.
-
-## references
-
-- [jon-brandy: Debugging Interface](https://github.com/jon-brandy/hackthebox/blob/main/Categories/Hardware/Debugging%20Interface/README.md)
-- [Nihir Zala: Debugging Interface HackTheBox](https://nihirzala.medium.com/debugging-interface-hackthebox-9f18ba91d6ca)

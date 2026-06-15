@@ -27,8 +27,4 @@ Fighting the anti-debug dynamically is the slow path. The flag is a static strin
 ## the flag
 
 The flag came out of the hex dump intact, an `HTB{...}` string whose wording calls out that it is only UD2 doing the hiding. The lesson held: when dynamic tools go quiet because of SIGILL or signal-based control flow, drop to static analysis and read the binary. A shortcut that also works: search the binary for the program name string passed as `argv[0]`, since the password bytes live near it in the data the program references.
-
-## references
-
-- [Artem Garmash, Behind the Scenes writeup (skipping illegal instructions)](https://agarmash.com/posts/htb-behindthescenes-writeup/)
 {% endraw %}

@@ -44,7 +44,3 @@ if (!WriteProcessMemory(hw, (LPVOID)(base + 0xA681FB), &lv, 1, 0)) {
 With the game still running, I built and ran the injector. The single-byte patch flipped the comparison in place, the win state triggered, and the game presented the flag. It reads as cube madness, unmaddened.
 
 The shorter intended route skips writing code entirely: attach Cheat Engine to the process, scan for the cube counter as a 4-byte int (start at 0, collect one cube, scan for the increased value, repeat to isolate the address), then freeze it at 20. The counter passes the same `0x14` check from the data side instead of patching the comparison from the code side. The injector is the equivalent move done with `WriteProcessMemory` against the instruction rather than the value.
-
-## references
-
-- [CubeMadness1, Rahul R](https://rahulr.in/HackTheBox-GamePWN/)

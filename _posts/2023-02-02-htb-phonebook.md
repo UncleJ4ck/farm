@@ -61,8 +61,3 @@ while True:
 ## the flag
 
 The loop walked the charset for each position, kept the matching characters, and stopped when no character extended the prefix. The reconstructed string was the flag in the `HTB{...}` form.
-
-## references
-
-- [gsilvapt: HackTheBox Phonebook challenge](https://gsilvapt.me/posts/htb-phonebook-challenge/)
-- [Jokepp writeups: phonebook](https://github.com/Jokepp/writeups/blob/main/hackthebox/challenges/phonebook.md)

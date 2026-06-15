@@ -97,9 +97,4 @@ Joining and running `su -` gave a root shell and the root flag.
 ## takeaway
 
 SSTI in a PGP UID gave code execution, but only inside a sandbox, so the leaked httpie session was the real way out. The atlas pivot was a classic writable-dependency build: a root cron compiled code I controlled. Root was a known firejail SUID exploit.
-
-## references
-
-- [0xdf: HTB Sandworm](https://0xdf.gitlab.io/2023/11/18/htb-sandworm.html)
-- [CVE-2022-31214: firejail local privilege escalation](https://seclists.org/oss-sec/2022/q2/188)
 {% endraw %}

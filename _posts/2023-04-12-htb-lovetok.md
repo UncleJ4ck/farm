@@ -68,7 +68,3 @@ home
 ## the flag
 
 I swapped the command from the directory listing to a read of that randomly named flag file at `/`, and the value came back inline in the rendered time response. It read like `HTB{...eval...}`.
-
-## references
-
-- [d7x, LoveTok: php addslashes restricted quotes bypass](https://d7x.promiselabs.net/2021/02/18/htb-challenge-lovetok-php-addslashes-restricted-quotes-bypass/)

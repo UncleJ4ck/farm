@@ -66,8 +66,3 @@ The only requirement is a `rand()` that matches glibc's stream for a given seed,
 ## the flag
 
 Reading the seed from the header and replaying the stream undid the cipher exactly, and the 28 decrypted bytes spelled the `HTB{...}` flag. Putting the key in the ciphertext is the whole bug: a keyed transform is only as good as the key staying secret. If the seed had not been written to the file, the `time(NULL)` seeding would still have been weak, a brute over a small window of candidate seeds would have recovered it, since each guess either yields printable `HTB{...}` text or garbage.
-
-## references
-
-- [Simple Encryptor reverse engineering writeup, hiroki6.dev](https://hiroki6.dev/posts/simple-encryptor/)
-- [Simple Encryptor walkthrough, favas.dev](https://favas.dev/blogs/hackthebox/challenges/reversing/simple-encryptor/)

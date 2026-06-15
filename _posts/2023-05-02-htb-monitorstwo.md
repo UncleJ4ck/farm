@@ -131,7 +131,3 @@ That is a root shell, and the root flag.
 ## takeaway
 
 The whole box is layered access: the Cacti RCE only reaches a container, the cracked password only reaches marcus, and neither is root. The escape works because two defaults line up, overlay2 at permissive permissions and no userns remapping, so container root equals host root through a path marcus is allowed to traverse. I wrote the overlay2 escape up in detail as a standalone PoC, see the [CVE-2021-41091 post]({{ '/cve-2021-41091/' | relative_url }}).
-
-## references
-
-- [0xdf, HTB: MonitorsTwo](https://0xdf.gitlab.io/2023/09/02/htb-monitorstwo.html)

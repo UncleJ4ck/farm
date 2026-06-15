@@ -94,7 +94,3 @@ The script runs as root, the appended line fires my shell, and the listener catc
 ## takeaway
 
 Nothing exotic here, just a stack of small misconfigurations: a "nothing interesting" comment pointing at the real app, a CMS password equal to the box name, an upload plugin that trusts the extension, and a root-run script living in a user-writable path. The only careful move worth keeping is appending rather than overwriting the sudo script, so you do not break the thing you need to keep running.
-
-## references
-
-- [0xdf, HTB: Nibbles](https://0xdf.gitlab.io/2018/06/30/htb-nibbles.html)

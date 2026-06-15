@@ -104,8 +104,3 @@ That dropped a root shell and the root flag.
 ## takeaway
 
 Actuator endpoints should never be public. The session leak was the whole chain's start, the command injection only needed `${IFS}` to dodge the whitespace filter, and `sudo ssh` is trivially abused via ProxyCommand.
-
-## references
-
-- [0xdf, HTB: CozyHosting](https://0xdf.gitlab.io/2024/03/02/htb-cozyhosting.html)
-- [CozyHosting - HackTheBox](https://www.hackthebox.com/machines/cozyhosting)

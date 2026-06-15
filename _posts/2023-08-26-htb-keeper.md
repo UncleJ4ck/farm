@@ -66,7 +66,3 @@ That logged in as root and gave the root flag.
 ## takeaway
 
 Both ends of this box are credential hygiene failures. A production ticketing system left on its install-time `root:password` is an instant admin login, and reusing that ticketed password for SSH turned a web account into a shell. The root step is more interesting, the KeePass dump CVE is a reminder that secret managers leak through process memory, and that storing a private key inside a vault is only as safe as the vault's master password.
-
-## references
-
-- [0xdf - HTB: Keeper](https://0xdf.gitlab.io/2024/02/10/htb-keeper.html)

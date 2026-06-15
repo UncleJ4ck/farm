@@ -62,8 +62,3 @@ RsaCtfTool.py --publickey pubkey.pem --uncipherfile key
 ## the flag
 
 The AES-ECB decrypt printed the flag in `HTB{...}` form. The whole break hinged on noticing `n` was a prime cube. The standard `(p-1)*(q-1)` would have produced the wrong phi and a useless `d`. Once the totient matched the prime-power structure, the rest was a plain modular inverse and one AES decrypt.
-
-## references
-
-- [7Rocky: RsaCtfTool](https://7rocky.github.io/ctf/htb-challenges/crypto/rsactftool/)
-- [forensicskween: HackTheBox RsaCtfTool](https://forensicskween.com/ctf/hack-the-box/htb-rsactftool/)

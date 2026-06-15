@@ -110,8 +110,3 @@ root, and the root flag.
 ## takeaway
 
 A regex-driven `proxy_pass` let nginx reach a Redis socket, turning SSRF into data writes, and a `str.format()` call on attacker-controlled data leaked a root secret through `__globals__`. Never format-string untrusted input.
-
-## references
-
-- [0xdf, HTB: Format](https://0xdf.gitlab.io/2023/09/30/htb-format.html)
-- [Format - HackTheBox](https://www.hackthebox.com/machines/format)

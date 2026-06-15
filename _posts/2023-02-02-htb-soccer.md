@@ -119,8 +119,3 @@ dstat ran the plugin as root and the listener caught a root shell with the root 
 ## takeaway
 
 Default credentials on an exposed file manager opened the whole box. The interesting part is the SQLi living behind a WebSocket instead of an HTTP parameter, solved by bridging WebSocket to HTTP so a standard tool could exploit it. Root is a doas rule plus a writable plugin path, the same pattern as a sudo binary that loads code from a directory you can write.
-
-## references
-
-- [0xdf: HTB Soccer](https://0xdf.gitlab.io/2023/06/10/htb-soccer.html)
-- [CVE-2021-45010: Tiny File Manager path traversal upload](https://nvd.nist.gov/vuln/detail/CVE-2021-45010)

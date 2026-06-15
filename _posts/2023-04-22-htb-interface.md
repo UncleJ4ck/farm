@@ -85,7 +85,3 @@ That gave a root shell and the root flag.
 ## takeaway
 
 Two themes here. First, attack surface leaks through headers, the CSP value exposed an internal service that was never meant to be reachable. Second, bash arithmetic is not a safe place to put untrusted strings. `[[ $untrusted -eq N ]]` is an eval primitive, and feeding it attacker-controlled file metadata as root is the whole privesc.
-
-## references
-
-- [0xdf - HTB: Interface](https://0xdf.gitlab.io/2023/05/13/htb-interface.html)

@@ -43,8 +43,4 @@ The response contained the output of `id`, so I had command execution. The same 
 ## the flag
 
 I reused the `os.popen(...).read()` gadget in the path to read the flag file on disk, and Jinja2 rendered the contents back into the response. It came out as `HTB{...templates...}`. The `self.__init__.__globals__.__builtins__` chain reaches the same `os` import and is interchangeable here if `request.application` is ever unavailable.
-
-## references
-
-- [Templated writeup, sys41x4](https://sys41x4.github.io/blog/HTB/challenge/web/Templated.html)
 {% endraw %}

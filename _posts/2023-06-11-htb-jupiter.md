@@ -121,7 +121,3 @@ I hosted my public key as `authorized_keys`, ran `sudo sattrack`, and it downloa
 ## takeaway
 
 Five identities to reach root, and each hop was its own misconfiguration. Grafana trusting a client-supplied SQL query, a cron reading a 777 config, a notebook token sitting in a group-readable log, and a sudo binary that takes its file destinations from an attacker-writable config. None needed an exploit, just trusting input that should not be trusted.
-
-## references
-
-- [0xdf - HTB: Jupiter](https://0xdf.gitlab.io/2023/10/21/htb-jupiter.html)

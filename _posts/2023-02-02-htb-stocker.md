@@ -74,7 +74,3 @@ The `../../../` walks back to `/`, then down into my home where my script lived.
 ## takeaway
 
 The NoSQL bypass came down to one `$ne` operator because the app passed user JSON straight into a Mongo query. Reflecting attacker input into a server-rendered PDF is a file-read primitive, and storing a Mongo password in source that gets reused for SSH chained it straight to a shell. The root grant looked locked down with a fixed path and a wildcard, but the wildcard never blocked `../`, so path traversal handed me arbitrary code as root.
-
-## references
-
-- [0xdf, HTB: Stocker](https://0xdf.gitlab.io/2023/06/24/htb-stocker.html)

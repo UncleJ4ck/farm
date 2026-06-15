@@ -115,7 +115,3 @@ password: !!python/unicode 'p7qfAZt4_A1xo_0x'
 ## takeaway
 
 Two known CVEs chain cleanly: the SQLi gets an authenticated session, and authentication is the precondition for the XXE. The XXE itself is a file-read primitive, so its value is entirely in knowing which files to read, wp-config first for FTP, then chasing reused credentials from FTP to SMTP to SSH. The root step is a reminder that a password manager only protects you if its master passphrase is not crackable with rockyou.
-
-## references
-
-- [0xdf - HTB: MetaTwo](https://0xdf.gitlab.io/2023/04/29/htb-metatwo.html)

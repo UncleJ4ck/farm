@@ -50,8 +50,3 @@ python3 csv_to_data.py data.csv | sed 's/*//g' | sed 's/Enter Password//g' | sed
 ## the flag
 
 After scrubbing the prompt text, the asterisks, and the access message, what remained was the PIN, which was the flag in `HTB{...}` form. The keypad leaked its entire input over an unprotected I2C bus, so the flag itself is a note that bad hardware design leads to leaks.
-
-## references
-
-- [Hackplayers: Mission PINpossible writeup](https://github.com/Hackplayers/hackthebox-writeups/blob/master/challenges/Hardware/Mission-Pinpossible-writeup-run3.pdf)
-- [Koos van den Hout: HTB CTF hardware challenges](https://idefix.net/~koos/newsitem.cgi/1619553277)

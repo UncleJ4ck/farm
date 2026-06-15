@@ -112,7 +112,3 @@ That captured the KeePass master password as it was entered. Opening the databas
 ## takeaway
 
 The web chain is one bug feeding the next: stored XSS exists only because reviewers render attacker content, and it is useful only because it can reach an internal host the attacker cannot. The NoSQL `success` flag is a perfectly good oracle even with no token in hand. On root, the lesson is that secrets typed into a running process you can `ptrace` are not secret. A blocklist that forgets backticks is the same mistake as no blocklist at all.
-
-## references
-
-- [0xdf - HTB: Mailroom](https://0xdf.gitlab.io/2023/08/19/htb-mailroom.html)

@@ -93,7 +93,3 @@ When the root cron ran binwalk on it, the plugin fired my reverse shell as root 
 ## takeaway
 
 A leaked .git handed me the source and the exact ImageMagick build, which mapped to a known file-read CVE. Reading the DB through that bug was enough for SSH, and the root path was a second CVE in a tool a root cron ran on attacker-supplied files.
-
-## references
-
-- [0xdf, HTB: Pilgrimage](https://0xdf.gitlab.io/2023/11/25/htb-pilgrimage.html)

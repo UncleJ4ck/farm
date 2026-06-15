@@ -65,8 +65,3 @@ That returned a root shell and the root flag.
 ## takeaway
 
 Two avoidable mistakes stacked on top of each other. The user database XML was served by the web server with no access control, and the password was an unsalted SHA-1 of a dictionary word. Either one alone is bad. Together they hand you admin. After that the box is a textbook GTFOBins sudo abuse, `php` should never sit in a NOPASSWD rule.
-
-## references
-
-- [CVE-2019-11231 - CVE Details](https://www.cvedetails.com/cve/CVE-2019-11231/)
-- [GetSimple CMS <= 3.3.16 RCE (CVE-2019-11231) - Pentest-Tools](https://pentest-tools.com/vulnerabilities-exploits/getsimple-cms-3316-rce-vulnerability_4115)
