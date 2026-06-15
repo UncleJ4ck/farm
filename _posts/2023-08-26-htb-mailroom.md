@@ -5,6 +5,7 @@ subtitle: "stored XSS to blind NoSQL injection for creds, then command injection
 date: 2023-08-26
 tags: [htb, linux, xss, nosql-injection, command-injection]
 category: writeups
+kind: machine
 tldr: "Stored XSS in contact.php fires an XHR against an internal staff panel, which lets me hit auth.php and brute tristan's password through MongoDB NoSQL injection. SSH in, chisel to the internal vhost, command injection in inspect.php gets www-data, a leaked .git config gives matthew, and stracing his kpcli session captures the KeePass master password for root."
 ---
 
@@ -17,13 +18,13 @@ Mailroom is a Linux box. nmap gave me two ports:
 80/tcp open  http    Apache httpd 2.4.54 ((Debian))
 ```
 
-The site is `mailroom.htb`. Fuzzing vhosts turned up `git.mailroom.htb` running Gitea and `staff-review-panel.mailroom.htb`, whose `index.php` returned 403. The staff names listed on the site mattered later: Tristan Pitt, Matthew Conley, Chris McLovin, Vivien Perkins.
+The site is `mailroom.htb`, an Apache/PHP 7.4.33 app. Fuzzing vhosts turned up `git.mailroom.htb` running Gitea 1.18.0 (with a public `staffroom` repo) and `staff-review-panel.mailroom.htb`, whose `index.php` returned 403. The staff names listed on the site mattered later: Tristan Pitt, Matthew Conley, Chris McLovin, Vivien Perkins.
 
 ## recon
 
 `contact.php` takes an inquiry and stores it, then serves it back from a path like `/inquiries/<hash>.html`. That stored content gets rendered when staff review it, which is the setup for stored XSS. The forbidden host `staff-review-panel.mailroom.htb` is only reachable from inside, so I needed the victim's browser to reach it for me.
 
-The panel login posts to `/auth.php`. Its client JS sends the form to `auth.php` and reads back a JSON `message`. The backend uses `mongodb/mongodb` and a `findOne()` that is vulnerable to NoSQL injection.
+The panel login posts to `/auth.php`. Its client JS sends the form to `auth.php` and reads back a JSON `message`. The backend uses `mongodb/mongodb` and a `findOne()` that is vulnerable to NoSQL injection. It does check `is_string()` on `email` and `password`, but the check only echoes an error and returns a 401 without an `exit`, so execution falls through and the array-valued input still reaches the query. That execute-after-redirect bug is what keeps the injection alive past the filter.
 
 ## foothold
 
@@ -100,7 +101,7 @@ In matthew's home were `personal.kdbx` (a KeePass database) and a `.kpcli-histor
 2023/04/21 03:25:32 CMD: UID=1001  PID=27816  | /usr/bin/perl /usr/bin/kpcli
 ```
 
-Since kpcli runs as a live process, I attached `strace` to it and read its input. The master password is typed into the running process, so the syscalls leak it:
+Since kpcli runs as a live process owned by matthew and `kernel.yama.ptrace_scope` allowed tracing a same-UID process, I attached `strace` to it and read its input. The master password is typed into the running process, so the syscalls leak it:
 
 ```bash
 strace -p `ps -ef | grep kpcli | awk '{ print $2 }'`
@@ -111,3 +112,7 @@ That captured the KeePass master password as it was entered. Opening the databas
 ## takeaway
 
 The web chain is one bug feeding the next: stored XSS exists only because reviewers render attacker content, and it is useful only because it can reach an internal host the attacker cannot. The NoSQL `success` flag is a perfectly good oracle even with no token in hand. On root, the lesson is that secrets typed into a running process you can `ptrace` are not secret. A blocklist that forgets backticks is the same mistake as no blocklist at all.
+
+## references
+
+- [0xdf - HTB: Mailroom](https://0xdf.gitlab.io/2023/08/19/htb-mailroom.html)

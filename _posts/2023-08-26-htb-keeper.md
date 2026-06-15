@@ -5,6 +5,7 @@ subtitle: "Request Tracker default creds to reused SSH password, then a KeePass 
 date: 2023-08-26
 tags: [htb, linux, request-tracker, keepass, cve-2023-32784]
 category: writeups
+kind: machine
 tldr: "A ticketing subdomain ran Request Tracker with default root:password. A ticket exposed lnorgaard's password, which was reused for SSH. Her home held a KeePass database and a memory dump, and CVE-2023-32784 recovered the master password from the dump. The database stored root's PuTTY private key, which converted to an OpenSSH key for a root login."
 ---
 
@@ -30,7 +31,7 @@ lnorgaard   Lise Nørgaard   lnorgaard@keeper.htb
 root        Enoch Root      root@localhost
 ```
 
-A ticket / user comment exposed lnorgaard's password, `Welcome2023!`. That same password worked for SSH:
+A ticket noted lnorgaard was set up with a default password, and her RT user profile (the admin user-edit page) carried it in cleartext, `Welcome2023!`. That same password worked for SSH:
 
 ```bash
 ssh lnorgaard@keeper.htb
@@ -40,7 +41,7 @@ lnorgaard owned the user flag. Her home directory also held `RT30000.zip`, which
 
 ## root
 
-A KeePass crash dump plus a `.kdbx` is the signature of CVE-2023-32784. KeePass 2.x leaves the master password in process memory in a recoverable form, where each typed character can be carved from the dump except the first. I used the [keepass-dump-masterkey](https://github.com/CMEPW/keepass-dump-masterkey) tool against `KeePassDumpFull.dmp`, which recovered the master password:
+A KeePass crash dump plus a `.kdbx` is the signature of CVE-2023-32784, which affects KeePass 2.x before 2.54. KeePass leaves the master password in process memory in a recoverable form, where each typed character can be carved from the dump except the first. I used the [keepass-dump-masterkey](https://github.com/CMEPW/keepass-dump-masterkey) tool against `KeePassDumpFull.dmp`, which recovered the master password:
 
 ```
 rødgrød med fløde
@@ -65,3 +66,7 @@ That logged in as root and gave the root flag.
 ## takeaway
 
 Both ends of this box are credential hygiene failures. A production ticketing system left on its install-time `root:password` is an instant admin login, and reusing that ticketed password for SSH turned a web account into a shell. The root step is more interesting, the KeePass dump CVE is a reminder that secret managers leak through process memory, and that storing a private key inside a vault is only as safe as the vault's master password.
+
+## references
+
+- [0xdf - HTB: Keeper](https://0xdf.gitlab.io/2024/02/10/htb-keeper.html)

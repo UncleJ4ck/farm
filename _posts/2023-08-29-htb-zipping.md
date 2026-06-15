@@ -5,12 +5,13 @@ subtitle: "A zip symlink read upload.php source, a pathinfo extension bypass dro
 date: 2023-08-29
 tags: [htb, linux, file-upload, sudo, privilege-escalation]
 category: writeups
+kind: machine
 tldr: "An upload form 7z-extracted a PDF from a zip. A zip symlink gave arbitrary file read of the upload handler's source, which showed the extension check was just a pathinfo() comparison. A filename like x.phpg.pdf bypassed it and dropped a runnable .php webshell as rektsu. Root came from a NOPASSWD sudo binary that dlopen's a .so from my home config, so a malicious library with a constructor ran as root."
 ---
 
 ## the box
 
-Zipping is a Linux box running OpenSSH 9.0p1 and Apache 2.4.54 on Ubuntu 22.10. The site is a watch store with an `/upload.php` page that accepts a zip and extracts a PDF resume from it. Content discovery also showed `/uploads`, `/shop`, and `/assets`.
+Zipping is a Linux box running OpenSSH 9.0p1 (Ubuntu 1ubuntu7.3) and Apache 2.4.54 on Ubuntu 23.04. The site is a watch store with an `/upload.php` page that accepts a zip and extracts a PDF resume from it. Content discovery also showed `/uploads`, `/shop`, and `/assets`.
 
 ## recon
 
@@ -93,3 +94,9 @@ After entering `St0ckM4nager`, the dlopen pulled in my library, the constructor 
 ## takeaway
 
 The zip symlink gave me the handler source for free, which is what made the rest easy. `pathinfo()` checking only the final extension is not a real upload filter, especially when the web server treats `.php` anywhere in the name as executable. The root step was a textbook insecure dlopen: a setuid-via-sudo binary loading a library from a user-writable path, which is just code execution with extra steps.
+
+There is a second foothold too. The shop's `product.php` filters its `id` parameter with a regex, but a newline (`%0A`) slips past it into a UNION-based SQL injection. The MySQL user has `FILE` privileges, so `INTO OUTFILE` writes a webshell into `/dev/shm`, reaching the same `rektsu` execution by a different door.
+
+## references
+
+- [0xdf, HTB: Zipping](https://0xdf.gitlab.io/2024/01/13/htb-zipping.html)

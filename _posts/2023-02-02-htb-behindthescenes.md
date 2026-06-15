@@ -5,6 +5,7 @@ subtitle: "SIGILL handlers hide the real password compare from ltrace and strace
 date: 2023-02-02
 tags: [htb, ctf, rev, anti-debug, static-analysis]
 category: writeups
+kind: challenge
 tldr: "The binary deliberately executes UD2 to raise SIGILL and runs the real password logic inside the signal handler, so dynamic tracing shows nothing. I skipped the dynamic angle and pulled the flag straight out of the binary with a hex editor."
 ---
 {% raw %}
@@ -25,5 +26,9 @@ Fighting the anti-debug dynamically is the slow path. The flag is a static strin
 
 ## the flag
 
-The flag came out of the hex dump intact, an `HTB{...}` string whose wording calls out that it is only UD2 doing the hiding. The lesson held: when dynamic tools go quiet because of SIGILL or signal-based control flow, drop to static analysis and read the binary.
+The flag came out of the hex dump intact, an `HTB{...}` string whose wording calls out that it is only UD2 doing the hiding. The lesson held: when dynamic tools go quiet because of SIGILL or signal-based control flow, drop to static analysis and read the binary. A shortcut that also works: search the binary for the program name string passed as `argv[0]`, since the password bytes live near it in the data the program references.
+
+## references
+
+- [Artem Garmash, Behind the Scenes writeup (skipping illegal instructions)](https://agarmash.com/posts/htb-behindthescenes-writeup/)
 {% endraw %}

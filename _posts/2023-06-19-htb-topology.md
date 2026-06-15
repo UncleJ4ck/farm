@@ -5,26 +5,27 @@ subtitle: "LaTeX injection LFI read an htpasswd hash that cracked to SSH, then a
 date: 2023-06-19
 tags: [htb, linux, lfi, latex-injection, cron, privesc]
 category: writeups
+kind: machine
 tldr: "A LaTeX equation renderer let me read arbitrary files with lstinputlisting. I pulled the dev vhost's htpasswd hash, cracked it with john, and logged in over SSH. Root came from a cron that ran every .plt file in a world-writable /opt/gnuplot as root, so a gnuplot system call set the SUID bit on bash."
 ---
 
 ## the box
 
-Topology is a Linux box running OpenSSH 8.2p1 and Apache 2.4.41. The main site is Miskatonic University's Topology Group. Vhost fuzzing turned up `stats`, `dev`, and a LaTeX equation generator at `latex.topology.htb/equation.php`.
+Topology is a Linux box running OpenSSH 8.2p1 (Ubuntu 4ubuntu0.7) and Apache 2.4.41 on Ubuntu. The main site is Miskatonic University's Topology Group. Vhost fuzzing turned up `stats`, `dev`, and a LaTeX equation generator at `latex.topology.htb/equation.php`.
 
 ## recon
 
-nmap showed 22 and 80. The homepage leaked the email `lklein@topology.htb`, and vhost enumeration found three subdomains. `stats.topology.htb` had a graph and a `/files` listing. `dev.topology.htb` sat behind HTTP basic auth, which means an `.htpasswd` somewhere. `latex.topology.htb/equation.php` rendered LaTeX equations on the fly.
+nmap showed 22 and 80. The homepage leaked the email `lklein@topology.htb`, and `ffuf` against the `Host` header found three subdomains. `stats.topology.htb` returned 200 with a graph and a `/files` listing. `dev.topology.htb` returned 401, sitting behind HTTP basic auth, which means an `.htpasswd` somewhere. `latex.topology.htb/equation.php` was linked from the main site and rendered LaTeX equations on the fly.
 
 ## foothold
 
-I assumed command injection on the LaTeX endpoint at first and got nowhere. LaTeX is mostly exploitable for file read and path traversal rather than direct RCE, so I tested input commands instead. This payload worked and read a local file:
+I assumed command injection on the LaTeX endpoint at first and got nowhere. The endpoint also ran a blacklist that stripped the obvious write/include primitives: `\begin`, `\immediate`, `\usepackage`, `\input`, `\write`, `\loop`, `\include`, `\@`, `\while`, `\def`, `\url`, `\href`, and `\end` were all blocked. That kills the usual `\write18` shell-out and `\input` LFI. LaTeX is mostly exploitable for file read and path traversal rather than direct RCE anyway, so I tested commands the filter missed. `\lstinputlisting` was not on the list, and wrapping it in dollar signs escapes into inline math mode so the renderer accepts it:
 
 ```
 $\lstinputlisting{/etc/hostname}$
 ```
 
-`\lstinputlisting` is a listings package command that reads a file into the document, so it doubles as an LFI primitive. With file read working, I went after the basic-auth credentials for the dev vhost:
+`\lstinputlisting` is a listings package command that reads a file into the document, so it doubles as an LFI primitive. The blacklist could also be sidestepped with TeX hex escapes (`^^77` for `w`, so `\^^77rite` slips past the `\write` filter), but `\lstinputlisting` was enough on its own. With file read working, I went after the basic-auth credentials for the dev vhost:
 
 ```
 $\lstinputlisting{/var/www/dev/.htpasswd}$
@@ -76,4 +77,8 @@ Then `/bin/bash -p` kept the effective root UID and dropped me into a root shell
 
 ## takeaway
 
-LaTeX renderers are a file-read sink waiting to happen, and `\lstinputlisting` reads any path the web user can. Storing an htpasswd hash where that user can reach it leaked the basic-auth credential straight into a crackable hash. The root step was a classic world-writable cron target, and gnuplot's `system` command turned a plotting job into arbitrary root execution.
+LaTeX renderers are a file-read sink waiting to happen, and `\lstinputlisting` reads any path the web user can. The blacklist tried to stop the dangerous commands but missed `\lstinputlisting` entirely, and even the blocked ones fell to hex escapes. Storing an htpasswd hash where that user can reach it leaked the basic-auth credential straight into a crackable hash. The root step was a classic world-writable cron target, and gnuplot's `system` command turned a plotting job into arbitrary root execution.
+
+## references
+
+- [0xdf, HTB: Topology](https://0xdf.gitlab.io/2023/11/04/htb-topology.html)

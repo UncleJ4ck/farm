@@ -5,12 +5,13 @@ subtitle: "blind SQLi over a Python WebSocket for admin creds, password reuse to
 date: 2023-04-05
 tags: [htb, linux, websocket-sqli, password-reuse, pyinstaller]
 category: writeups
+kind: machine
 tldr: "The QReader app on ws.qreader.htb:5789 ran a Python websockets server with a blind SQL injection, dumping admin:denjanjade122566. That password was reused for tkeller over SSH. Root came from a sudo build-installer.sh that runs pyinstaller on an attacker-supplied .spec file, which executes arbitrary Python as root."
 ---
 
 ## the box
 
-Socket is a Linux box running SSH on 22, Apache 2.4.52 fronting a Werkzeug/Python app on 80, and a Python `websockets` server on 5789. The site distributes a desktop app, QReader, that talks to the WebSocket backend.
+Socket is an Ubuntu box running OpenSSH 8.9p1 on 22, Apache 2.4.52 fronting a Werkzeug 2.1.2 / Python 3.10.6 app on 80, and a Python `websockets` server on 5789. The site distributes a desktop app, QReader, that talks to the WebSocket backend.
 
 ## recon
 
@@ -21,7 +22,7 @@ nmap fingerprinted 5789 as a websockets server:
 Failed to open a WebSocket connection: did not receive a valid HTTP request.
 ```
 
-The QReader client pointed at `ws://ws.qreader.htb:5789` and called two endpoints, `/version` and `/update`, sending a JSON `version` field. Decompiling the bundled `qreader.pyc` confirmed the host and message shape:
+The QReader client pointed at `ws://ws.qreader.htb:5789` and called two endpoints, `/version` and `/update`, sending a JSON `version` field. The binary was a PyInstaller 5.6.2 bundle, so I unpacked it with `pyinstxtractor` and decompiled the resulting `qreader.pyc` with `pycdc`, which confirmed the host and message shape:
 
 ```python
 ws_host = 'ws://ws.qreader.htb:5789'
@@ -30,7 +31,7 @@ response = asyncio.run(ws_connect(ws_host + '/version', json.dumps({'version': V
 
 ## foothold
 
-The `version` value flowed into a SQL query and was injectable, but the only feedback was the response body, so this was blind SQLi over the WebSocket. As with similar boxes, I bridged WebSocket to HTTP with a small middleware so sqlmap could drive it. The middleware sends my payload as the version field:
+The `version` value flowed into a SQLite query and was injectable, but the only feedback was the response body, so this was blind SQLi over the WebSocket. As with similar boxes, I bridged WebSocket to HTTP with a small middleware so sqlmap could drive it. The middleware sends my payload as the version field:
 
 ```python
 ws_server = "ws://ws.qreader.htb:5789/version"
@@ -98,3 +99,7 @@ That shell owned the root flag.
 ## takeaway
 
 Two patterns drive this box. First, SQL injection hidden behind a WebSocket, exploited by fronting it with an HTTP middleware so an off-the-shelf tool works. Second, password reuse turning one dumped credential into SSH access. The root step is a reminder that build-tool config files are code: a sudo rule that runs pyinstaller on a user-supplied `.spec` is the same as a sudo rule that runs arbitrary Python.
+
+## references
+
+- [0xdf: HTB Socket](https://0xdf.gitlab.io/2023/07/15/htb-socket.html)

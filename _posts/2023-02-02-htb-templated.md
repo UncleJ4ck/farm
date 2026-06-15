@@ -5,6 +5,7 @@ subtitle: "the url path is rendered as a jinja2 template, so the path is the inj
 date: 2023-02-02
 tags: [htb, ctf, web, ssti, jinja2]
 category: writeups
+kind: challenge
 tldr: "A Flask app reflected the requested URL path into a Jinja2 template. Visiting /${{1+1}} returned 2, which confirmed server-side template injection. I walked the object globals to import os and ran commands, then read the flag the same way."
 ---
 {% raw %}
@@ -17,7 +18,7 @@ The server banner gave it away as Flask on Werkzeug:
 Server: Werkzeug/1.0.1 Python/3.9.0
 ```
 
-Any path I requested came back reflected in the response. That reflection was not plain text, it was rendered through Jinja2.
+Any path I requested came back reflected in the response, specifically in the 404 page, which echoed the requested path name back. That reflection was not plain text, it was rendered through Jinja2.
 
 ## the bug
 
@@ -41,5 +42,9 @@ The response contained the output of `id`, so I had command execution. The same 
 
 ## the flag
 
-I reused the `os.popen(...).read()` gadget in the path to read the flag file on disk, and Jinja2 rendered the contents back into the response. It came out as `HTB{...templates...}`.
+I reused the `os.popen(...).read()` gadget in the path to read the flag file on disk, and Jinja2 rendered the contents back into the response. It came out as `HTB{...templates...}`. The `self.__init__.__globals__.__builtins__` chain reaches the same `os` import and is interchangeable here if `request.application` is ever unavailable.
+
+## references
+
+- [Templated writeup, sys41x4](https://sys41x4.github.io/blog/HTB/challenge/web/Templated.html)
 {% endraw %}

@@ -5,6 +5,7 @@ subtitle: "BookingPress unauth SQLi to crack a manager, WordPress XXE to read wp
 date: 2023-02-02
 tags: [htb, linux, wordpress, sqli, xxe]
 category: writeups
+kind: machine
 tldr: "An unauthenticated SQL injection in the BookingPress WordPress plugin (CVE-2022-0739) dumps password hashes and I crack the manager. An authenticated Media Library XXE (CVE-2021-29447) reads wp-config.php for the FTP password, which leads to send_email.php and jnelson's SSH creds. Root comes from a passpie GPG store cracked with gpg2john."
 ---
 
@@ -22,7 +23,7 @@ The site uses the `twentytwentyone` theme and has an `/events` page that books a
 
 ## recon
 
-BookingPress 1.0.10 has an unauthenticated SQL injection, CVE-2022-0739, in the `bookingpress_front_get_category_services` AJAX action. The public exploit needs a valid `_wpnonce` from the events page.
+BookingPress 1.0.10 has an unauthenticated SQL injection, CVE-2022-0739 (fixed in 1.0.11), in the `bookingpress_front_get_category_services` AJAX action. The injectable parameter is `total_service`, and the query exposes 9 columns for a UNION. The public exploit needs a valid `_wpnonce`, which sits in the `/events/` page source next to the `action:'bookingpress_front_get_category_services'` call.
 
 ## foothold
 
@@ -114,3 +115,7 @@ password: !!python/unicode 'p7qfAZt4_A1xo_0x'
 ## takeaway
 
 Two known CVEs chain cleanly: the SQLi gets an authenticated session, and authentication is the precondition for the XXE. The XXE itself is a file-read primitive, so its value is entirely in knowing which files to read, wp-config first for FTP, then chasing reused credentials from FTP to SMTP to SSH. The root step is a reminder that a password manager only protects you if its master passphrase is not crackable with rockyou.
+
+## references
+
+- [0xdf - HTB: MetaTwo](https://0xdf.gitlab.io/2023/04/29/htb-metatwo.html)

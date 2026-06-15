@@ -5,6 +5,7 @@ subtitle: "the encryptor writes its own srand seed into the file header, so the 
 date: 2023-02-02
 tags: [htb, ctf, rev, crypto, prng]
 category: writeups
+kind: challenge
 tldr: "The encryptor seeds rand() with time(NULL) and, fatally, writes that 4-byte seed to the front of the output before the ciphertext. With the seed I replay the same rand() stream and undo each byte's xor-then-rotate in reverse order."
 ---
 
@@ -64,4 +65,9 @@ The only requirement is a `rand()` that matches glibc's stream for a given seed,
 
 ## the flag
 
-Reading the seed from the header and replaying the stream undid the cipher exactly, and the 28 decrypted bytes spelled the `HTB{...}` flag. Putting the key in the ciphertext is the whole bug: a keyed transform is only as good as the key staying secret.
+Reading the seed from the header and replaying the stream undid the cipher exactly, and the 28 decrypted bytes spelled the `HTB{...}` flag. Putting the key in the ciphertext is the whole bug: a keyed transform is only as good as the key staying secret. If the seed had not been written to the file, the `time(NULL)` seeding would still have been weak, a brute over a small window of candidate seeds would have recovered it, since each guess either yields printable `HTB{...}` text or garbage.
+
+## references
+
+- [Simple Encryptor reverse engineering writeup, hiroki6.dev](https://hiroki6.dev/posts/simple-encryptor/)
+- [Simple Encryptor walkthrough, favas.dev](https://favas.dev/blogs/hackthebox/challenges/reversing/simple-encryptor/)

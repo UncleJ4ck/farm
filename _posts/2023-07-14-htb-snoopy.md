@@ -5,6 +5,7 @@ subtitle: "zone transfer plus path-traversal LFI to the rndc key, DNS hijack int
 date: 2023-07-14
 tags: [htb, linux, dns, lfi, ssh-mitm, sudo]
 category: writeups
+kind: machine
 tldr: "A BIND zone transfer and a preg_replace path-traversal LFI gave me the rndc TSIG key. I used nsupdate to repoint mail.snoopy.htb at my box, caught a Mattermost reset token over a debug SMTP server, and reset sbrown. A /server_provision command triggered an outbound SSH that I MITM'd for cbrown creds. cbrown -> sbrown via sudo git apply of a crafted diff, sbrown -> root via sudo clamscan file read."
 ---
 
@@ -113,7 +114,7 @@ cbrown's sudo rule let cbrown run `git apply` as sbrown:
 (sbrown) PASSWD: /usr/bin/git apply *
 ```
 
-`git apply` writes files as the target user. I built a diff that adds my public key to sbrown's `authorized_keys`, then applied it:
+`git apply` writes files as the target user. The intended route here is CVE-2023-23946, a git path-traversal where a patch creates a symlink and then writes through it to escape the repo, but a plain diff that targets sbrown's home works just as well since `git apply` runs as sbrown. I built a diff that adds my public key to sbrown's `authorized_keys`, then applied it:
 
 ```bash
 cd /home
@@ -129,7 +130,7 @@ SSH in as sbrown for the user flag. sbrown then had a clean NOPASSWD rule:
 (root) NOPASSWD: /usr/local/bin/clamscan
 ```
 
-clamscan's `-f` flag scans a file list and echoes each line it reads back in its output, so it doubles as an arbitrary root file read:
+The intended root step is CVE-2023-20052, an XXE in ClamAV's DMG parser, where a crafted plist entity (`clamscan --debug evil.dmg`) leaks a file into debug output. The simpler unintended path is the `-f` flag: it scans a file list and echoes each line it reads back in its output, so it doubles as an arbitrary root file read:
 
 ```bash
 sudo /usr/local/bin/clamscan -f /root/root.txt
@@ -140,3 +141,9 @@ The scan printed the flag content as a "No such file or directory" entry, which 
 ## takeaway
 
 Every step here is a misuse of legitimate functionality. A permissive zone transfer leaked infrastructure, a non-recursive `preg_replace` filter handed over a TSIG key, dynamic DNS plus an attacker-pointed mailserver hijacked a reset flow, and the privesc chain is two GTFOBins-style sudo entries. `git apply` and `clamscan -f` both turn a narrow grant into write or read as another user.
+
+## references
+
+- [0xdf: HTB Snoopy](https://0xdf.gitlab.io/2023/09/23/htb-snoopy.html)
+- [CVE-2023-23946: git apply path traversal](https://github.com/git/git/security/advisories/GHSA-r87m-v37r-cwfh)
+- [CVE-2023-20052: ClamAV DMG XXE](https://blog.talosintelligence.com/clamav-cve-2023-20052/)

@@ -5,6 +5,7 @@ subtitle: "Searchor eval() command injection for a shell, .git creds reused over
 date: 2023-04-13
 tags: [htb, linux, rce, command-injection, privesc]
 category: writeups
+kind: machine
 tldr: "searcher.htb ran a Flask wrapper over Searchor 2.4.0, which builds an eval() string from user input. A crafted query gave RCE as svc. A leaked .git config held cody's password, reused for SSH. A root sudo script called full-checkup.sh by relative path, so dropping a malicious one in my own dir and running the script gave root."
 ---
 
@@ -21,7 +22,7 @@ nmap showed 22 and 80, with the web server redirecting to `searcher.htb`.
 80/tcp open  http    Apache httpd 2.4.52
 ```
 
-The app advertised Flask 2.1.2 and Searchor 2.4.0. The `/search` endpoint took `engine` and `query` and returned a URL. Searchor 2.4.0 has a known eval()-based injection (SNYK-PYTHON-SEARCHOR-3166303): it builds and evals a string with the query inlined.
+The app ran Werkzeug 2.1.2 on Python 3.10.6 (Ubuntu 22.04), advertising Flask 2.1.2 and Searchor 2.4.0. The `/search` endpoint took `engine` and `query` and returned a URL. Searchor `<= 2.4.0` has a known eval()-based injection (SNYK-PYTHON-SEARCHOR-3166303): it builds and evals a string with the query inlined. 2.4.2 fixed it (PR #130) by dropping eval for direct attribute access.
 
 ```python
 url = eval(f"Engine.{engine}.search('{query}', copy_url={copy}, open_web={open})")
@@ -89,3 +90,10 @@ root-owned bash ran my script, set the SUID bit, and `bash -p` gave a root shell
 ## takeaway
 
 An eval-based library bug gave the foothold, credentials sat in a checked-out .git config, and a sudo script calling a helper by relative path let me control what root executed. Always pin helper scripts to absolute paths.
+
+The Gitea instance ran in Docker alongside a MySQL container on a `docker_gitea` network. Pulling the Gitea DB creds (`gitea:yuiu1hoiu4i5ho1uh`) and reusing them as the Gitea administrator password exposes the `scripts` repo, which holds the source of `system-checkup.py` and confirms the relative-path call.
+
+## references
+
+- [0xdf, HTB: Busqueda](https://0xdf.gitlab.io/2023/08/12/htb-busqueda.html)
+- [Busqueda - HackTheBox](https://www.hackthebox.com/machines/busqueda)

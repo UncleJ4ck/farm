@@ -5,6 +5,7 @@ subtitle: "ldap injection: wildcard auth bypass, then a blind oracle to rebuild 
 date: 2023-02-02
 tags: [htb, ctf, web, ldap-injection]
 category: writeups
+kind: challenge
 tldr: "Login was backed by LDAP and accepted user=* and pass=* as a wildcard bypass. The password field was also injectable as a blind oracle: posting the admin Reese with a partial flag plus a wildcard returned a non-failure page only when the prefix matched, so I looped characters to rebuild the flag one at a time."
 ---
 
@@ -14,14 +15,14 @@ The target was a phonebook login. The footer read `PhoneBook 9.8.2020`. A failed
 
 ## the bug
 
-The login query was LDAP-backed and built from the raw input. Sending `*` in both fields authenticated:
+The login query was LDAP-backed and built by string-concatenating the raw input into a filter, something like `(&(uid=<user>)(userPassword=<pass>))`. Sending `*` in both fields authenticated:
 
 ```text
 user: *
 pass: *
 ```
 
-A wildcard matches any entry, so the filter always returned a result. Once in, the search field also took a wildcard: searching `*` dumped every record, and the admin entry was Reese:
+In LDAP `*` is the presence/substring wildcard, so the filter became `(&(uid=*)(userPassword=*))` and matched any entry that has those attributes set. The bind always returned a result. Once in, the search field also took a wildcard: searching `*` dumped every record, and the admin entry was Reese:
 
 ```text
 *Reese : Kyle Reese    reese@skynet.com    555-1234567
@@ -60,3 +61,8 @@ while True:
 ## the flag
 
 The loop walked the charset for each position, kept the matching characters, and stopped when no character extended the prefix. The reconstructed string was the flag in the `HTB{...}` form.
+
+## references
+
+- [gsilvapt: HackTheBox Phonebook challenge](https://gsilvapt.me/posts/htb-phonebook-challenge/)
+- [Jokepp writeups: phonebook](https://github.com/Jokepp/writeups/blob/main/hackthebox/challenges/phonebook.md)

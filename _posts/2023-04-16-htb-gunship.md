@@ -5,6 +5,7 @@ subtitle: "prototype pollution through the flat package into a pug ast injection
 date: 2023-04-16
 tags: [htb, ctf, web, prototype-pollution, ssti]
 category: writeups
+kind: challenge
 tldr: "An Express app ran unflatten() from the flat package on the raw request body, which let me set __proto__ keys. The same handler called pug.compile(), and pug walks the prototype chain when it builds its AST. I polluted __proto__.block with a fake Text node whose line was a JS expression, and pug executed it as code."
 ---
 
@@ -32,9 +33,9 @@ router.post('/api/submit', (req, res) => {
 
 ## the bug
 
-Two things lined up. `unflatten` from the `flat` package expands dotted keys back into nested objects, and it does not filter `__proto__`. So a body key like `__proto__.block` writes onto `Object.prototype`. That is prototype pollution straight from the request body.
+Two things lined up. `unflatten` from the `flat` package (5.0.0, the version before the prototype-pollution fix) expands dotted keys back into nested objects, and it does not filter `__proto__`. So a body key like `__proto__.block` writes onto `Object.prototype`. That is prototype pollution straight from the request body.
 
-The second thing is `pug.compile()`. To reach it I had to pass the name check, so `artist.name` had to contain one of `Haigh`, `Westaway`, or `Gingell`. When pug builds its AST it reads node properties off objects, and missing properties resolve up the prototype chain. If I pollute the prototype with a node that pug treats as part of the template, pug compiles my injected node into the generated function. This is the AST injection from blog.p6.is/AST-Injection.
+The second thing is `pug` (3.0.0) and its `compile()`. To reach it I had to pass the name check, so `artist.name` had to contain one of `Haigh`, `Westaway`, or `Gingell`. When pug builds its AST it reads node properties off objects, and missing properties resolve up the prototype chain. The link is pug's code generator: it iterates a node's `block`, and for each child it emits a `pug_debug_line = <node.line>` statement straight into the source of the compiled template function. A polluted `Object.prototype.block` therefore gets picked up as a real AST node, and whatever I put in that node's `line` field is written into the function body as JavaScript. This is the AST injection from blog.p6.is/AST-Injection.
 
 ## the solve
 
@@ -62,3 +63,8 @@ When `pug.compile()` ran, it picked up the polluted `block` and emitted my `line
 ## the flag
 
 The flag came back as the contents of `/static/out` after I pointed the `execSync` command at the flag file on disk.
+
+## references
+
+- [Prototype pollution to RCE / AST injection, blog.p6.is](https://blog.p6.is/AST-Injection/)
+- [nandan-desai-extras, Gunship walkthrough](https://github.com/nandan-desai-extras/prototype-pollution/blob/master/gunship-walkthrough.md)

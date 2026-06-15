@@ -5,6 +5,7 @@ subtitle: "classic gets() stack overflow, return into flag() with the two magic 
 date: 2023-04-23
 tags: [htb, ctf, pwn, buffer-overflow, ret2win]
 category: writeups
+kind: challenge
 tldr: "A 32-bit no-PIE binary reads into a 180-byte buffer with gets(). I overflowed 188 bytes to the saved return address, pointed it at flag(), and stacked a fake return plus the two argument values flag() checks (0xdeadbeef, 0xc0ded00d) so it printed the flag."
 ---
 
@@ -76,3 +77,9 @@ io.interactive()
 ## the flag
 
 After `vuln()` returns, EIP jumps into `flag()`. The argument check passes because both ints sit exactly where the function expects them, so `printf(flag)` ran and the flag came back over the connection. It reads like a note that your buffer is not healthy.
+
+The Ghidra decompile shows the checks as the signed values `-559038737` and `-1059139571`, which are just the two's-complement reading of `0xdeadbeef` and `0xc0ded00d`. Sending the raw little-endian dwords with `p32()` lands the same bytes either way.
+
+## references
+
+- [You know 0xDiablos, sayonara writeups](https://sayonara.gitbook.io/writeups/hackthebox/challenges/pwn/you-know-0xdiablos)

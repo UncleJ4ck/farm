@@ -5,8 +5,42 @@ title: writeups
 
 <header class="page-head">
   <h1>writeups</h1>
-  <p class="page-sub">field notes from building and breaking. hardware, radio, low-level, the human factor.</p>
+  <p class="page-sub">hack the box. machines and challenges, recon to root.</p>
 </header>
 
-{% assign items = site.posts | where: "category", "writeups" %}
-{% include postlist.html posts=items %}
+{% assign machines = site.posts | where: "category", "writeups" | where: "kind", "machine" %}
+{% assign challenges = site.posts | where: "category", "writeups" | where: "kind", "challenge" %}
+{% assign other = site.posts | where: "category", "writeups" | where_exp: "p", "p.kind != 'machine' and p.kind != 'challenge'" %}
+
+{% if machines.size > 0 %}
+<section class="cat-section">
+  <div class="section-head">
+    <span class="sh-label">machines</span>
+    <span class="sh-line" aria-hidden="true"></span>
+    <span class="sh-count">{{ machines.size | prepend: '0' | slice: -2, 2 }}</span>
+  </div>
+  {% include postlist.html posts=machines %}
+</section>
+{% endif %}
+
+{% if challenges.size > 0 %}
+<section class="cat-section">
+  <div class="section-head">
+    <span class="sh-label">challenges</span>
+    <span class="sh-line" aria-hidden="true"></span>
+    <span class="sh-count">{{ challenges.size | prepend: '0' | slice: -2, 2 }}</span>
+  </div>
+  {% include postlist.html posts=challenges %}
+</section>
+{% endif %}
+
+{% if other.size > 0 %}
+<section class="cat-section">
+  <div class="section-head">
+    <span class="sh-label">other</span>
+    <span class="sh-line" aria-hidden="true"></span>
+    <span class="sh-count">{{ other.size | prepend: '0' | slice: -2, 2 }}</span>
+  </div>
+  {% include postlist.html posts=other %}
+</section>
+{% endif %}

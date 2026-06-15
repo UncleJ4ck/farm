@@ -5,12 +5,13 @@ subtitle: "Tiny File Manager default creds to webshell, blind SQLi over a WebSoc
 date: 2023-02-02
 tags: [htb, linux, default-creds, websocket-sqli, doas]
 category: writeups
+kind: machine
 tldr: "Tiny File Manager 2.4.3 at /tiny had default admin creds, which let me upload a webshell for a www-data shell. A vhost soc-player.soccer.htb spoke to a WebSocket on 9091 that was blind-SQL-injectable, dumping player:PlayerOftheMatch2022 for SSH. Root came from a doas rule allowing dstat as root plus a writable plugin directory."
 ---
 
 ## the box
 
-Soccer is a Linux box running nginx 1.18.0 on 80, SSH on 22, and an unknown service on 9091. The site is a static soccer page. After adding `soccer.htb` to my hosts file, the interesting path was elsewhere.
+Soccer is an Ubuntu 20.04 box running nginx 1.18.0 on 80, OpenSSH 8.2p1 on 22, and an unknown service on 9091. The site is a static soccer page. After adding `soccer.htb` to my hosts file, the interesting path was elsewhere.
 
 ## recon
 
@@ -30,7 +31,7 @@ Port 9091 answered HTTP-ish but only with `Cannot GET /`, so it was not a normal
 
 ## foothold
 
-Tiny File Manager 2.4.3 has a documented shell-upload path: find a writable folder, upload a PHP file, browse to it. I uploaded a webshell into a writable directory and got execution as `www-data`.
+Tiny File Manager 2.4.3 has a documented authenticated upload path (CVE-2021-45010): find a writable folder, upload a PHP file, browse to it. I uploaded a webshell into `/tiny/uploads/` and got execution as `www-data`.
 
 From there I enumerated the host. `/etc/hosts` and the nginx config exposed a second vhost and its backend:
 
@@ -59,7 +60,7 @@ var ws = new WebSocket("ws://soc-player.soccer.htb:9091");
 ws.send(JSON.stringify({ "id": msg }));
 ```
 
-The `id` value was injectable, but the only signal back was whether the ticket existed, so this was blind SQLi over a WebSocket. I used a middleware that turns a normal HTTP query into a WebSocket message, so sqlmap can drive it. The relevant bits of the middleware:
+The `id` value was injectable against a MySQL backend, but the only signal back was whether the ticket existed, so this was blind SQLi over a WebSocket. I used a middleware that turns a normal HTTP query into a WebSocket message, so sqlmap can drive it. The relevant bits of the middleware:
 
 ```python
 ws_server = "ws://soccer.htb:9091/"
@@ -118,3 +119,8 @@ dstat ran the plugin as root and the listener caught a root shell with the root 
 ## takeaway
 
 Default credentials on an exposed file manager opened the whole box. The interesting part is the SQLi living behind a WebSocket instead of an HTTP parameter, solved by bridging WebSocket to HTTP so a standard tool could exploit it. Root is a doas rule plus a writable plugin path, the same pattern as a sudo binary that loads code from a directory you can write.
+
+## references
+
+- [0xdf: HTB Soccer](https://0xdf.gitlab.io/2023/06/10/htb-soccer.html)
+- [CVE-2021-45010: Tiny File Manager path traversal upload](https://nvd.nist.gov/vuln/detail/CVE-2021-45010)

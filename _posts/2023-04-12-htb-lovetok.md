@@ -5,6 +5,7 @@ subtitle: "a php eval() in a date format string, with addslashes bypassed by bac
 date: 2023-04-12
 tags: [htb, ctf, web, php, rce]
 category: writeups
+kind: challenge
 tldr: "The app builds a date string inside eval() from an attacker-controlled format value. addslashes() guards the input, but the backtick / ${} trick slips past it. I closed the date() call, injected system($_GET[1]), and read the flag file dropped at the filesystem root."
 ---
 
@@ -42,7 +43,7 @@ The `format` parameter comes from the request and lands inside an `eval()`.
 eval('$time = date("");system("ls")//. $this->format . '", strtotime("' . $this->prediction . '"));');
 ```
 
-The catch is the constructor running `addslashes($format)`, which escapes my quotes. The bypass is the backtick / `${}` interpolation trick: PHP evaluates `${...}` inside a double-quoted string, and that path does not need escaped quotes. So I wrap the call in `${system($_GET[1])}` and pull the command from a second parameter.
+The catch is the constructor running `addslashes($format)`, which escapes my quotes. The bypass is the backtick / `${}` interpolation trick: PHP evaluates `${...}` inside a double-quoted string, and that path does not need escaped quotes. The minimal form is `${print(`ls`)}`, where backticks are PHP's shell-exec operator and `print` echoes the result, all without a single or double quote for `addslashes` to escape. I went a step further and wrapped `${system($_GET[1])}` so I could pull the command from a second parameter instead of editing the payload each time.
 
 ## the solve
 
@@ -67,3 +68,7 @@ home
 ## the flag
 
 I swapped the command from the directory listing to a read of that randomly named flag file at `/`, and the value came back inline in the rendered time response. It read like `HTB{...eval...}`.
+
+## references
+
+- [d7x, LoveTok: php addslashes restricted quotes bypass](https://d7x.promiselabs.net/2021/02/18/htb-challenge-lovetok-php-addslashes-restricted-quotes-bypass/)

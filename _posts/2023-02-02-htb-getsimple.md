@@ -5,6 +5,7 @@ subtitle: "default admin:admin into authenticated theme-edit RCE, then sudo php 
 date: 2023-02-02
 tags: [htb, linux, getsimple-cms, cve-2019-11231, gtfobins]
 category: writeups
+kind: machine
 tldr: "Recon found GetSimple CMS 3.3.15 with the admin SHA-1 hash sitting in a world-readable XML file that cracked to admin. From the dashboard I edited a theme template to drop a reverse shell as www-data. www-data could run /usr/bin/php under sudo NOPASSWD, so a one-liner from GTFOBins gave root."
 ---
 
@@ -32,7 +33,7 @@ That `PWD` value is an unsalted SHA-1. `d033e22ae348aeb5660fc2140aec35850c4da997
 
 ## foothold
 
-GetSimple 3.3.x has an authenticated RCE in the theme editor, CVE-2019-11231. The theme editor lets an authenticated admin edit the raw PHP of a template file, and the server executes whatever you save. The Cardinal theme was installed, so I edited its `template.php` through the editor at:
+GetSimple 3.3.x (through 3.3.15) has an authenticated RCE in the theme editor, CVE-2019-11231. `theme-edit.php` does insufficient input sanitization, so an authenticated admin can edit the raw PHP of a template file and the server executes whatever you save. The Cardinal theme was installed, so I edited its `template.php` through the editor at:
 
 ```
 http://10.129.87.63/admin/theme-edit.php?t=Cardinal&f=template.php
@@ -64,3 +65,8 @@ That returned a root shell and the root flag.
 ## takeaway
 
 Two avoidable mistakes stacked on top of each other. The user database XML was served by the web server with no access control, and the password was an unsalted SHA-1 of a dictionary word. Either one alone is bad. Together they hand you admin. After that the box is a textbook GTFOBins sudo abuse, `php` should never sit in a NOPASSWD rule.
+
+## references
+
+- [CVE-2019-11231 - CVE Details](https://www.cvedetails.com/cve/CVE-2019-11231/)
+- [GetSimple CMS <= 3.3.16 RCE (CVE-2019-11231) - Pentest-Tools](https://pentest-tools.com/vulnerabilities-exploits/getsimple-cms-3316-rce-vulnerability_4115)

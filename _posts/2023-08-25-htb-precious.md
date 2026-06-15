@@ -5,12 +5,13 @@ subtitle: "pdfkit 0.8.6 command injection via the url param, reused bundle creds
 date: 2023-08-25
 tags: [htb, linux, command-injection, ruby, deserialization, cve]
 category: writeups
+kind: machine
 tldr: "A Ruby url-to-PDF app used pdfkit 0.8.6, leaking the version in the PDF metadata. CVE-2022-25765 gave command injection through the url param for a shell as henry. Plaintext bundle creds were reused, and a root-run Ruby script doing unsafe YAML.load (CVE-2022-32224) deserialized a gadget chain to root."
 ---
 
 ## the box
 
-Precious is a Linux box serving a Ruby web app on nginx port 80, plus SSH. The app takes a URL and renders the remote page to a PDF.
+Precious is a Linux box serving a Ruby web app on nginx 1.18.0 (port 80) fronted by Phusion Passenger 6.0.15, plus OpenSSH 8.4p1 (Debian `5+deb11u1`) on 22. The site redirects to `precious.htb`, and the `X-Runtime` response header confirmed a Ruby backend. The app takes a URL and renders the remote page to a PDF.
 
 ## recon
 
@@ -41,7 +42,14 @@ BUNDLE_HTTPS://RUBYGEMS__ORG/: "henry:Q3c1AqGHtoI0aXAYFH"
 
 ## root
 
-henry could run a Ruby script as root. The script loaded a `dependencies.yml` from henry's home directory with `YAML.load`, which on this Ruby version is vulnerable to CVE-2022-32224, unsafe deserialization. By crafting the YAML as a gadget chain, `YAML.load` instantiates objects that ultimately call `Kernel.system` with my command.
+`sudo -l` showed one NOPASSWD entry:
+
+```
+User henry may run the following commands on precious:
+    (root) NOPASSWD: /usr/bin/ruby /opt/update_dependencies.rb
+```
+
+The script loaded a `dependencies.yml` from the current working directory with `YAML.load`, which on this Ruby version is vulnerable to CVE-2022-32224, unsafe deserialization. Because the path is relative, I ran the command from a directory where I could drop my own `dependencies.yml`. By crafting the YAML as a gadget chain, `YAML.load` instantiates objects that ultimately call `Kernel.system` with my command.
 
 ```yaml
 - !ruby/object:Gem::Installer
@@ -69,3 +77,8 @@ The `git_set` value is the injected command. When root ran the script, it set th
 ## takeaway
 
 The PDF metadata gave away the exact pdfkit version, which mapped straight to a command-injection CVE. After that, reused plaintext creds and a root script feeding attacker-controlled YAML into an unsafe loader did the rest.
+
+## references
+
+- [0xdf: HTB Precious](https://0xdf.gitlab.io/2023/05/20/htb-precious.html)
+- [UNICORDev exploit for CVE-2022-25765 (pdfkit)](https://github.com/UNICORDev/exploit-CVE-2022-25765)

@@ -5,6 +5,7 @@ subtitle: "dompdf font-cache RCE via a hidden API subdomain, then an exiftool Pr
 date: 2023-04-22
 tags: [htb, linux, dompdf, cve-2022-28368, exiftool]
 category: writeups
+kind: machine
 tldr: "A CSP header leaked an internal API subdomain hosting an html2pdf endpoint backed by dompdf. CVE-2022-28368 abuses dompdf's font caching to write a PHP file into the web-accessible fonts directory, which gave a shell as www-data. A root cron ran bash arithmetic over a PDF Producer tag, so injecting a command substitution with exiftool got code execution as root via a SUID bash."
 ---
 
@@ -32,7 +33,7 @@ That found `html2pdf`. It expected JSON, so with `Content-Type: application/json
 
 ## foothold
 
-dompdf is vulnerable to CVE-2022-28368. When dompdf parses CSS `@font-face` rules it downloads the referenced font and caches it on disk, and it writes that cache file with a `.php` extension into a predictable, web-accessible fonts directory. By pointing a font at a malicious file, you get a PHP file written under the web root that you can then request to execute. I used the positive-security dompdf-rce repo for this.
+The renderer was dompdf 1.2.0, which is vulnerable to CVE-2022-28368. When dompdf parses CSS `@font-face` rules it downloads the referenced font and caches it on disk, and it writes that cache file with a `.php` extension into a predictable, web-accessible fonts directory. By pointing a font at a malicious file, you get a PHP file written under the web root that you can then request to execute. I used the positive-security dompdf-rce repo for this.
 
 The cached payload landed at:
 
@@ -54,7 +55,7 @@ The dompdf shell ran as www-data, which already had the user flag.
 
 ## root
 
-linpeas flagged `/usr/local/sbin/cleancache.sh`. The script walks PDF files, reads each one's Producer metadata tag, and compares it against dompdf using a bash arithmetic test, `[[ "$x" -eq ... ]]`. The catch with bash arithmetic comparison is that it evaluates its operands as arithmetic expressions, and arithmetic context performs command substitution. So a Producer tag containing `$(...)` gets executed. This is the trick described in [vidarholen's blog post](https://www.vidarholen.net/contents/blog/?p=716): `-eq` behaves like `eval`.
+linpeas flagged `/usr/local/sbin/cleancache.sh`, run by root every two minutes. The script walks PDF files, reads each one's Producer metadata tag, and compares it against dompdf using a bash arithmetic test, `[[ "$x" -eq ... ]]`. The catch with bash arithmetic comparison is that it evaluates its operands as arithmetic expressions, and arithmetic context performs command substitution. So a Producer tag containing `$(...)` gets executed. This is the trick described in [vidarholen's blog post](https://www.vidarholen.net/contents/blog/?p=716): `-eq` behaves like `eval`.
 
 I built a payload script that copies bash and sets it SUID:
 
@@ -84,3 +85,7 @@ That gave a root shell and the root flag.
 ## takeaway
 
 Two themes here. First, attack surface leaks through headers, the CSP value exposed an internal service that was never meant to be reachable. Second, bash arithmetic is not a safe place to put untrusted strings. `[[ $untrusted -eq N ]]` is an eval primitive, and feeding it attacker-controlled file metadata as root is the whole privesc.
+
+## references
+
+- [0xdf - HTB: Interface](https://0xdf.gitlab.io/2023/05/13/htb-interface.html)

