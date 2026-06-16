@@ -84,7 +84,7 @@ body::after {
 .atmos-scene {
   position: absolute;
   inset: 0;
-  background: url("../img/cornfield-bg.jpg") no-repeat center bottom;
+  background: url("../img/cornfield-bg2.jpg") no-repeat center bottom;
   background-size: cover;
   // darken the scene itself so the moon glow and light corn never wash the text
   filter: brightness(0.58) contrast(1.06) saturate(0.92);
