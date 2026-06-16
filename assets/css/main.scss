@@ -86,17 +86,30 @@ body::after {
   inset: 0;
   background: url("../img/cornfield-bg.jpg") no-repeat center bottom;
   background-size: cover;
-  opacity: 0.5;
-  // a near-still breathing so the figure feels like it shifts in the dark
+  // darken the scene itself so the moon glow and light corn never wash the text
+  filter: brightness(0.58) contrast(1.06) saturate(0.92);
+  opacity: 0.62;
+  // a near-still breathing so the field feels like it shifts in the dark
   animation: scene-breathe 16s ease-in-out infinite;
 }
 
-// scrim over the reading column so the figure never washes the text
+// veil that anchors the text zones: dark under the nav/profile (top) and the
+// lists (bottom), with an open window mid-page where the moon glows through
 .atmos::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(70% 60% at 50% 42%, rgba(8, 9, 5, 0.28), transparent 78%);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(8, 9, 5, 0.74) 0%,
+      rgba(8, 9, 5, 0.40) 22%,
+      rgba(8, 9, 5, 0.34) 34%,
+      rgba(8, 9, 5, 0.56) 52%,
+      rgba(8, 9, 5, 0.78) 74%,
+      rgba(8, 9, 5, 0.90) 100%
+    ),
+    radial-gradient(62% 46% at 50% 40%, rgba(0, 0, 0, 0) 42%, rgba(8, 9, 5, 0.38) 100%);
 }
 
 .atmos-fog {
@@ -129,14 +142,14 @@ body::after {
   50%      { transform: translate3d(-6%, -2%, 0); }
 }
 @keyframes scene-breathe {
-  0%, 100% { opacity: 0.82; }
-  50%      { opacity: 0.92; }
+  0%, 100% { opacity: 0.56; }
+  50%      { opacity: 0.66; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .atmos-scene,
   .atmos-fog { animation: none; }
-  .atmos-scene { opacity: 0.85; }
+  .atmos-scene { opacity: 0.6; }
 }
 
 a {
