@@ -2010,7 +2010,7 @@ I do not want one figure in this post taken on faith, so here is the whole verif
 # Re-derive every load-bearing Atomic Arch IOC from the samples, read-only.
 # No sample is executed: this is file reads, a repeating-XOR, zlib inflate, and sha256.
 # Usage: verify_atomic_arch.py deps jsdigest_deps.bin bin_linux.elf bin_linux_v2.elf stock/monero-wallet-gui
-import sys, hashlib, zlib, struct, re
+import sys, hashlib, zlib, struct
 
 deps, jsd, v1, v2, stock = sys.argv[1:6]
 ONION = b"olrh4mibs62l6kkuvvjyc5lrercqg5tz543r4lsw3o6mh5qb7g7sneid.onion"
