@@ -10,7 +10,7 @@ tldr: "I went to install an AUR package, read its post-install hook on a whim, a
 
 I install things from the AUR the way most Arch users do: read the `PKGBUILD` if I remember to, trust the rest, move on. This post is about the one time I did not move on. A binary package I was installing had a post-install hook that was quietly obfuscating a shell command, the kind of thing you notice once and cannot un-notice. I kept pulling on the thread and it kept going, down through a Rust credential stealer, a kernel-resident eBPF rootkit, a Tor hidden service for command and control, a stolen-token supply-chain pivot, and finally a Monero wallet that had been rebuilt to rob whoever opened it. The campaign has a name now: people are calling it Atomic Arch.
 
-This campaign was documented by other people before this post, and the work here builds on theirs rather than restating it. [Whanos](https://github.com/Whanos) published the detailed reverse-engineering of the stage-one `deps` stealer: the onion offsets, the `temp.sh` exfil, the eBPF rootkit internals, the persistence, and the target matrix. [ioctl.fail](https://ioctl.fail/preliminary-analysis-of-aur-malware/) recovered the XOR-encoded onion at the same offsets. The one place my byte-level pass corrects the earlier reporting is the tasking path: it is `/api/mt/` (three hits in each ELF), not the `/api/agent` the early notes carried, which is byte-absent from every artifact (the detail is in the C2 section below). [CSA Labs](https://labs.cloudsecurityalliance.org/research/csa-research-note-aur-supply-chain-ebpf-rootkit-20260614-csa/), [Sonatype](https://www.sonatype.com/blog/atomic-arch-npm-campaign-adds-malicious-dependency), and [lenucksi/aur-malware-check](https://github.com/lenucksi/aur-malware-check) mapped the campaign scope and the poisoned-package lists, which this post only samples (Sonatype scored the campaign CVSS 8.7, and the cross-wave AUR list runs past 1,600 packages, against the roughly 400 confirmed-malicious in the first wave). [JFrog Security Research](https://www.bleepingcomputer.com/news/security/over-400-arch-linux-packages-compromised-to-push-rootkit-infostealer/) and [SafeDep](https://safedep.io/ti/campaigns/ironworm/) tied the hardcoded mnemonic to IronWorm. Where this post spends its time is the part that earlier reporting left open: the second stage. Most of it noted the rebuilt `monero-wallet-gui` and stopped there, or flagged it as a possible cryptominer. The rest of this writeup is what is inside that binary, because that is the piece still missing from the public picture. It is not a miner. It is a wallet drainer, and the injected code, the destination address, the live fetch, and the proxy container it ships alongside are below.
+This campaign was documented before this post, and the work here builds on that rather than restating it. [Whanos](https://github.com/Whanos) published the detailed reverse-engineering of the stage-one `deps` stealer at [ioctl.fail](https://ioctl.fail/preliminary-analysis-of-aur-malware/): the XOR-encoded onion and its offsets, the `temp.sh` exfil, the eBPF rootkit internals, the persistence, and the target matrix. [CSA Labs](https://labs.cloudsecurityalliance.org/research/csa-research-note-aur-supply-chain-ebpf-rootkit-20260614-csa/), [Sonatype](https://www.sonatype.com/blog/atomic-arch-npm-campaign-adds-malicious-dependency), and [lenucksi/aur-malware-check](https://github.com/lenucksi/aur-malware-check) mapped the campaign scope and the poisoned-package lists, which this post only samples (Sonatype scored it CVSS 8.7, and the cross-wave AUR list runs past 1,600 packages against the roughly 400 confirmed-malicious in the first wave). [JFrog Security Research](https://www.bleepingcomputer.com/news/security/over-400-arch-linux-packages-compromised-to-push-rootkit-infostealer/) and [SafeDep](https://safedep.io/ti/campaigns/ironworm/) tied the hardcoded mnemonic to IronWorm. This post spends its time on the second stage, which was the hardest piece to pin down: the rebuilt `monero-wallet-gui` scans byte-identical to stock at the native layer, so it reasonably reads as a possible cryptominer until you decompress the resource bundle. The rest of this writeup is what is actually inside that binary. It is not a miner. It is a wallet drainer, and the injected code, the destination address, the live fetch, and the proxy container it ships alongside are below.
 
 I am also going to be straight about where I got it wrong, the call where I declared the second stage clean and had to walk it back.
 
@@ -31,7 +31,7 @@ flowchart TD
 
 ## at a glance {#at-a-glance}
 
-Earlier reporting flagged the rebuilt `monero-wallet-gui` as a possible cryptominer and stopped at the native layer, which scans byte-identical to stock. It is a wallet drainer. The malice is twelve lines of QML inside the zlib-compressed Qt resource bundle, invisible to every ELF, symbol, and byte diff, that sweep any wallet holding more than 1 XMR to a hardcoded address the moment it finishes syncing. The proof below is a diff of that QML against the stock wallet, the sweep-all call semantics, and a stock-wallet negative control. Everything else here, the Rust stealer, the eBPF rootkit, the Tor C2, the proxy side-op, is how it gets onto the box and how it is delivered.
+The rebuilt `monero-wallet-gui` scans byte-identical to stock at the native layer, which is why it reads as a possible cryptominer. It is a wallet drainer. The malice is twelve lines of QML inside the zlib-compressed Qt resource bundle, invisible to every ELF, symbol, and byte diff, that sweep any wallet holding more than 1 XMR to a hardcoded address the moment it finishes syncing. The proof below is a diff of that QML against the stock wallet, the sweep-all call semantics, and a stock-wallet negative control. Everything else here, the Rust stealer, the eBPF rootkit, the Tor C2, the proxy side-op, is how it gets onto the box and how it is delivered.
 {:.callout-key}
 
 | field | value |
@@ -1881,7 +1881,7 @@ rule atomic_arch_stage1_stealer {
 }
 ```
 
-On the stage-one rule, `$bpf` (the `scales.bpf.c` build path) is the high-confidence anchor. `$vault` and `$gpg` are generic enough to fire on legitimate admin tooling, so weight the match toward `$bpf` rather than treating the four strings as equal; I would not alert on `$vault + $gpg` alone. Both rules as a file: [`atomic-arch.yar`](https://github.com/UncleJ4ck/farm/blob/main/assets/iocs/atomic-arch.yar).
+On the stage-one rule, `$bpf` (the `scales.bpf.c` build path) is the high-confidence anchor. `$vault` and `$gpg` are generic enough to fire on legitimate admin tooling, so weight the match toward `$bpf` rather than treating the four strings as equal; I would not alert on `$vault + $gpg` alone. Both rules as a file: [`atomic-arch.yar`](https://github.com/UncleJ4ck/cornfield/blob/main/assets/iocs/atomic-arch.yar).
 
 Hash-based detection for the parts that do not need a rule: the embedded eBPF rootkit object is a fixed `sha256 3607de2597f8955f9a88f36ee43b64d3891b8ef536e99fa098e80169350f7b01` in both stealers, and the trojaned `main.qml` decompresses to `sha256 ce8ecab937cf7109f3b344782cd1cbad680d4477965b235b0a59ce888986c4eb` (stock is `5007f0bb9b579176a66430d935192762490df9e87151ceaaa9201491520c4086`).
 
@@ -1939,7 +1939,7 @@ detection:
 level: medium
 ```
 
-All four Sigma rules as a file: [`atomic-arch.sigma.yml`](https://github.com/UncleJ4ck/farm/blob/main/assets/iocs/atomic-arch.sigma.yml).
+All four Sigma rules as a file: [`atomic-arch.sigma.yml`](https://github.com/UncleJ4ck/cornfield/blob/main/assets/iocs/atomic-arch.sigma.yml).
 
 The strongest behavioral tells, in priority order: a write to `/usr/bin/monero-wallet-gui` not attributable to `pacman`/`makepkg`; any pin under `/sys/fs/bpf/*/hidden_*`; a process executing from a random two-segment `/var/lib/<8>/<8>` path with a matching `Restart=always` systemd unit; outbound Tor from a build or developer host; and a non-Vault process reading `~/.vault-token` then connecting to `127.0.0.1:8200`.
 
@@ -2149,7 +2149,7 @@ That script and the rest of the analysis tooling are in the repo for this post, 
 
 ## ioc appendix {#iocs}
 
-A machine-readable copy of everything below is on GitHub: [`atomic-arch-iocs.csv`](https://github.com/UncleJ4ck/farm/blob/main/assets/iocs/atomic-arch-iocs.csv) (the `classification` column flags the clean-reference hashes, the withheld access credential, and the not-IOC names). The full tables stay here too.
+A machine-readable copy of everything below is on GitHub: [`atomic-arch-iocs.csv`](https://github.com/UncleJ4ck/cornfield/blob/main/assets/iocs/atomic-arch-iocs.csv) (the `classification` column flags the clean-reference hashes, the withheld access credential, and the not-IOC names). The full tables stay here too.
 
 **File hashes (SHA-256)**
 
@@ -2237,8 +2237,7 @@ A machine-readable copy of everything below is on GitHub: [`atomic-arch-iocs.csv
 
 **Prior analysis and coverage of this campaign** (this post builds on all of it):
 
-- [Whanos](https://github.com/Whanos), reverse-engineering of the stage-one `deps` stealer: onion, `/api/mt/` C2, `temp.sh` exfil, eBPF rootkit, persistence, target matrix
-- [ioctl.fail, "Preliminary analysis of AUR malware"](https://ioctl.fail/preliminary-analysis-of-aur-malware/), recovery of the XOR-encoded onion
+- [Whanos](https://github.com/Whanos), reverse-engineering of the stage-one `deps` stealer, writeup at [ioctl.fail "Preliminary analysis of AUR malware"](https://ioctl.fail/preliminary-analysis-of-aur-malware/): the XOR-encoded onion and its offsets, `/api/mt/` C2, `temp.sh` exfil, eBPF rootkit, persistence, target matrix
 - [CSA Labs research note](https://labs.cloudsecurityalliance.org/research/csa-research-note-aur-supply-chain-ebpf-rootkit-20260614-csa/), AUR supply chain and the eBPF rootkit
 - [Sonatype: Atomic Arch npm campaign](https://www.sonatype.com/blog/atomic-arch-npm-campaign-adds-malicious-dependency), campaign tracking (Sonatype-2026-003775 / -003808)
 - [lenucksi/aur-malware-check](https://github.com/lenucksi/aur-malware-check), affected-package list and scanner
