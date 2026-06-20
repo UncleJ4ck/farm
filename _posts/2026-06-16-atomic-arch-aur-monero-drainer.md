@@ -231,6 +231,20 @@ To be precise about what I did and did not do, because it is the responsible par
 
 ## stage one: the deps stealer {#stage-one}
 
+The sample at a glance:
+
+```
+File:     deps   (ELF 64-bit LSB PIE, x86-64)
+Linking:  dynamic, interp /lib64/ld-linux-x86-64.so.2 (glibc, GNU/Linux 4.4.0)
+Symbols:  stripped
+Size:     3,040,376 bytes
+Entry:    0xeae00      BuildID 41980d03dc3c4809591db0ff17003a82bc067d97
+Sections: .text   0xeae00  size 0x1ee88a   (~2.0 MB Rust code)
+          .rodata 0x19000  size 0x72519    (~458 KB; the harvest templates and the XOR onion live here)
+          .data   0x2e4d80 size 0x3d18
+          .bss    0x2e8aa0 size 0x5b08
+```
+
 The crate fingerprints survive stripping even when the source paths do not. What is left tells you the shape of the thing: `tokio` (async runtime), `rustls` plus `ring` (TLS without OpenSSL, and the source of the `ChaCha20-Poly1305` and `AES-GCM` strings in the binary, that is the TLS cipher suite, not a separate config crypto), `object` (ELF parsing), `nix` and `libc` (raw syscalls), and `libbpf`. That last one is the tell that the stealer carries and loads its own eBPF. More on the rootkit below. What is absent is its own tell: there is no `reqwest`, `hyper`, `ureq`, or any high-level HTTP client crate (all zero in both binaries), so every request it makes, GitHub, npm, Teams, the SOCKS hop, the multipart upload, is hand-assembled from raw `GET … HTTP/1.1\r\n` templates straight over `rustls`. That is why those request templates sit in `.rodata` as plain, readable strings.
 
 ```
@@ -767,6 +781,15 @@ Both scripts are in this post's repo. [`xor_onion.py`](https://github.com/UncleJ
 
 The C2 protocol, once you can read it: `GET /api/mt/` for tasking, with a Bearer token derived from `/etc/machine-id`. `GET /bin/sha256/linux` and `GET /bin/linux` to fetch the second stage. `POST /upload` for exfil, as a `multipart/form-data` body with the loot under `name="file"`. One correction to my own early notes: the tasking path is `/api/mt/`, not the `/api/agent` I first wrote. `/api/agent` is byte-level absent from every artifact. `/api/mt/` appears three times in each ELF. A byte-level negative control caught the mis-id.
 
+The whole onion surface is four endpoints:
+
+| endpoint | method | auth | purpose |
+|---|---|---|---|
+| `/api/mt/` | GET | machine-id Bearer | tasking; JSON reply parsed for the fields `jwt`, `keys`, `secret`, `passphrase`, `kv`, `channels`, `package`, `version`, `url`, `file`, `name`, `value`, `metadata`, `items`, `message`, `role` |
+| `/bin/sha256/linux` | GET | none | expected sha256 of the second stage (integrity gate) |
+| `/bin/linux` | GET | none | second-stage payload (27,787,328 B, the drainer) |
+| `/upload` | POST | none | loot exfil, `multipart/form-data` body with the part under `name="file"` |
+
 That tasking auth I read off the strings, not off the wire. The binary reads `/etc/machine-id` with a `no machine-id` fallback, so the read sits on a live path, and it carries an `Authorization: Bearer` template:
 
 ```
@@ -984,6 +1007,14 @@ agent startup (from agent_trace.txt / ftrace)
   bpf() load tracepoint programs   ← rootkit arms here
 ```
 
+Each of those startup lines has a static counterpart you can point at in the ELF:
+
+| dynamic (syscall trace) | static (file offset in the binary) |
+|---|---|
+| `open("/etc/machine-id")` | the read at `.rodata 0x2dd85` with the `no machine-id` fallback right after; this is the C2 Bearer source |
+| `bpf(BPF_PROG_LOAD)` + pins under `/sys/fs/bpf/<rand>/{hidden_pids,...}` | the embedded eBPF object carved at file offset `0x324f9` (`sha256 3607de25…`, the rootkit) |
+| `connect(127.0.0.1:8200)` x9 (next block) | the `X-Vault-Token:` header at `0x29cd5` and `/.vault-token` at `0x2c537` it reads first |
+
 Then it tries to reach out, and in the sealed guest the beacon cannot route, which it announces every five seconds:
 
 ```
@@ -1171,6 +1202,20 @@ I had three samples that looked like distinct builds:
 - v3: sha256 `92c40b92e909cd3dd505ea067f77218df00143e9a133a4463a26b217832ad8c0`, 20,516,912 bytes
 
 and a stock reference pulled from the Arch Linux Archive: `monero-gui 0.18.5.0-3`, 17,552,112 bytes, build-id `35731917e94b5a38bee2eb61bcaa089c28308eb5`.
+
+The sample at a glance:
+
+```
+File:      bin_linux.elf   (ELF 64-bit LSB PIE, x86-64)
+Linking:   dynamic
+Symbols:   NOT stripped     (which is why the C++ send-chain reads straight out by symbol below)
+Size:      27,787,328 bytes
+Entry:     0x285e10         BuildID a92f892ea1d50a0240653d4e67c66ae0005c11c0
+Sections:  .text      0x110740  size 0xa6b603  (~10.4 MB, AVX-512 -march=native)
+           .rodata    0xb81000  size 0xa01250  (~10.0 MB, holds the zlib-compressed QML = the drainer)
+           .qtversion 0x1582250 size 0x10      (0x00050f13 = Qt 5.15.19)
+           .bss       0x1711700 size 0xaa7c0
+```
 
 Structurally v1 is an ordinary Qt5 application. Four LOAD segments, and the third one, the 11 MB read-only segment, is where the resource bundle (and the QML) lives:
 
@@ -1583,6 +1628,17 @@ _strings.json entries: 544  match: 544  mismatch: 0  missing: 0
 
 VERDICT: BASE64-ONLY (no RC4): reimplementation reproduces the array
 ```
+
+A few raw array entries next to what they decode to (the lowercase-first alphabet is the whole trick):
+
+| index | encoded (custom base64) | decoded |
+|---|---|---|
+| `[0]` | `E30Uy29UC3rYDwn0B3iOiNjLDhvYBIb0AgLZiIKOicK` | `{}.constructor("return this")( )` |
+| `[3]` | `ndqZ` | `443` |
+| `[39]` | `Ahr0Chm6lY9HBwq2nc5ZC3nZlM55yY5TBI9IB3q` | `https://amd64.ssss.nyc.mn/bot` |
+| `[18]` | `jNbHDgG9jtjgDhjVAMfUlwfYz28Lm0zLzcuZrdi1nJaJ` | `&path=%2Ftrojan-argo%3Fed%3D2560#` |
+| `[53]` | `l2fWAs9HzgqTC3vIC2nYAxb0Aw9UCW` | `/api/add-subscriptions` |
+| `[66]` | `cNzSzxnZoI8V` | `\nvless://` |
 
 The decoder body settles the RC4 question on its own. Read straight from `_0xdb39` at `index.beautified.js:2934`, the inner `_0x2ce485` does exactly three things: `indexOf` each character into the custom alphabet, standard base64 bit-packing into bytes, then `'%' + charCodeAt.toString(16)` fed to `decodeURIComponent`. No S-box, no 256-element permutation, no XOR. The lowercase-first alphabet (`abc…XYZ…+/=`) where standard base64 is uppercase-first is the entire trick, and it reads as ciphertext at a glance.
 
