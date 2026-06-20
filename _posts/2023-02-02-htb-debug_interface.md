@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Debug Interface (HTB hardware)"
+title: "Debugging Interface (HTB hardware)"
 subtitle: "reading the baud rate off a UART capture from its shortest pulse width"
 date: 2023-02-02
 tags: [htb, ctf, hardware, uart, serial]
@@ -56,4 +56,10 @@ The one number that mattered was the shortest pulse width, `32.02 us`. Everythin
 
 ## the flag
 
-The terminal output spelled the flag out directly, an `HTB{...}` string whose own text makes the point that a debug interface like this shows up on nearly every embedded device, an open serial header that prints internal state to anyone with a probe. Pulling the baud rate off the single narrowest pulse is the whole trick for decoding an unlabeled async serial dump.
+The terminal output spelled the flag out directly:
+
+```text
+HTB{d38u991n9_1n732f4c35_c4n_83_f0und_1n_41m057_3v32y_3m83dd3d_d3v1c3!!52}
+```
+
+Its own text makes the point: a debug interface like this shows up on nearly every embedded device, an open serial header that prints internal state to anyone with a probe. Pulling the baud rate off the single narrowest pulse is the whole trick for decoding an unlabeled async serial dump.

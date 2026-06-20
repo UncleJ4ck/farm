@@ -85,5 +85,5 @@ That surfaced `flag.txt` sitting in the application directory. Then the read:
 ${{request.application.__globals__.__builtins__.__import__('os').popen('cat flag.txt').read()}}
 ```
 
-Jinja2 rendered the file contents into the 404 page exactly where the path name normally goes. It came out as `HTB{t3mpl4t3s_..._th1nk!}`, a templates-are-powerful theme. The whole box was one reflection that interpolated the URL path into a template instead of escaping it, and the `cycler` chain reaches the same `os` if `request.application` is ever out of scope.
+Jinja2 rendered the file contents into the 404 page exactly where the path name normally goes. It came out as `HTB{t3mpl4t3s_4r3_m0r3_p0w3rfu1_th4n_u_th1nk!}`, a templates-are-powerful theme. The whole box was one reflection that interpolated the URL path into a template instead of escaping it, and the `cycler` chain reaches the same `os` if `request.application` is ever out of scope.
 {% endraw %}

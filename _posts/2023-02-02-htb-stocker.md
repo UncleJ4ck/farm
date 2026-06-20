@@ -186,7 +186,7 @@ That dropped me to a shell and the user flag was in the home directory.
 
 ## root
 
-First I checked sudo:
+There was no SUID binary to abuse, and the polkit `CVE-2021-3560` privilege escalation looked applicable on this Ubuntu build but did not fire here, so I dropped it and moved on. First I checked sudo:
 
 ```bash
 sudo -l

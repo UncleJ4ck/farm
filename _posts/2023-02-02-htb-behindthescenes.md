@@ -151,16 +151,16 @@ Lining the four `strncmp` targets up with their addresses:
 - `0x2023` -> `Ly_` (`4c 79 5f`, then `00`)
 - `0x2027` -> `UD2` (`55 44 32`, then `00`)
 
-Concatenated in chunk order, the four constants form a twelve-byte password that matches the `len == 12` gate exactly. Feeding it back on the command line clears all four `strncmp` calls, and the binary reflects it into `> HTB{%s}` as the success line:
+Concatenated in chunk order, the four constants form the twelve-byte password `Itz_0nLy_UD2`, which matches the `len == 12` gate exactly. Feeding it back on the command line clears all four `strncmp` calls, and the binary reflects it into `> HTB{%s}` as the success line:
 
-```
-$ ./behindthescenes <recovered-password>
-> HTB{...}
+```text
+$ ./behindthescenes Itz_0nLy_UD2
+> HTB{Itz_0nLy_UD2}
 ```
 
 No need to defeat the signal trick at all. A hex editor or `objdump -s` reads the password straight out of the constants the comparison points at. If I had wanted the dynamic route instead, the patch is just as mechanical: replace each `0f 0b` (`ud2`) with `90 90` (two `nop`s) and the binary runs as a normal linear program that `strncmp` traces happily.
 
 ## the flag
 
-The flag is the twelve-byte password wrapped in `HTB{...}`, and its wording calls out that it was only `UD2` doing the hiding. The takeaway held: when `ltrace` and `strace` go silent because of `SIGILL` and signal-redirected control flow, stop fighting the runtime and read the binary. The data the comparison references, the rodata constants and the format string, gives up the answer with no execution at all.
+The flag is the twelve-byte password wrapped in `HTB{...}`: `HTB{Itz_0nLy_UD2}`. Its wording calls out that it was only `UD2` doing the hiding. The takeaway held: when `ltrace` and `strace` go silent because of `SIGILL` and signal-redirected control flow, stop fighting the runtime and read the binary. The data the comparison references, the rodata constants and the format string, gives up the answer with no execution at all.
 {% endraw %}

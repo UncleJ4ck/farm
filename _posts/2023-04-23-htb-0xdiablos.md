@@ -174,7 +174,7 @@ connection.interactive()
 When `vuln()` hit `ret`, it popped my `flag()` address into `EIP` and jumped there. `flag()` opened `flag.txt`, read it into its local buffer, hit the two `cmp` checks, and both passed because `0xdeadbeef` and `0xc0ded00d` were sitting exactly where `[ebp+0x8]` and `[ebp+0xc]` resolve. `printf(flag)` then ran and the contents came back over the connection:
 
 ```text
-HTB{...}
+HTB{0ur_Buff3r_1s_not_healthy}
 ```
 
 The flag reads like a note about the state of the buffer, which is the point. The whole chain is: unbounded `gets()` overflow, fixed addresses thanks to no PIE, no canary to stop the smash, and a convenient win function that only needed two hardcoded arguments dropped in the right stack slots.

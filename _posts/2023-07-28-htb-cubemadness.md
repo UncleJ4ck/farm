@@ -117,7 +117,7 @@ int wmain() {
 I started the game, left it running, then built and ran the injector. The single-byte write flipped the `JL` at the patch site to `JG` in place. With the comparison inverted, the win state triggered without me ever collecting 20 cubes, and the game presented the flag:
 
 ```text
-HTB{...}
+HTB{CU83_M4DN355_UNM4DD3N3D}
 ```
 
 The intended, code-free route hits the same gate from the data side with Cheat Engine. Attach Cheat Engine to `HackTheBox CubeMadness1.exe`, collect one cube, and do a 4-byte integer scan for `1`. That first scan returns hundreds of thousands of candidates, so you collect another cube, next-scan for the new value, and repeat until the list narrows to a handful of addresses. Set the cube-counter address to `20` (and freeze it), and the same `0x14` check passes from the value instead of the instruction. The injector is that move done with `WriteProcessMemory` against the comparison opcode rather than against the counter.

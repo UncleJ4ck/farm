@@ -57,7 +57,7 @@ if (iVar1 == 0) {
 }
 ```
 
-The block of `0x41, 0x5d, 0x4b ...` bytes is a 20-byte array built on the stack with the success routine's argument (`&local_48`). It is not the password, it is the buffer the flag routine works on.
+The block of `0x41, 0x5d, 0x4b ...` bytes is a 20-byte array built on the stack and handed to the success routine (`&local_48`). It is not the password. It is the flag stored XOR-encoded: `FUN_00400978` walks the 20 bytes and XORs each by `9` before printing, so `0x41 0x5d 0x4b 0x72` decodes to `H T B {` and the full array becomes `HTB{40b949f92b86b18}`. That is why stage two only gates whether the routine runs, never what it prints.
 
 Stage one is trivial: type `SuperSeKretKey` and the first `strcmp` returns 0, so the `exit(1)` is skipped. The disassembly around that first check:
 
@@ -144,7 +144,7 @@ I ran the patched binary, fed `SuperSeKretKey` at the first prompt and any junk 
 * SuperSeKretKey
 [SuperSeKretKey]
 ** whatever
-HTB{...}
+HTB{40b949f92b86b18}
 ```
 
 Patching the file is not the only route. The success branch is taken whenever the result is zero, so under a debugger I could break at `0x00400966`, run the program normally to that point, and clear `EAX` (or set the zero flag) right before the `JNZ`. The `test eax,eax` then sets ZF, the `JNZ` does not fire, and the same `FUN_00400978` runs with no file edit at all. Either way the gate disappears.

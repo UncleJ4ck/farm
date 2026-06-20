@@ -59,8 +59,9 @@ It asked for a username and password. I gave the pair from the script and the co
 
 ```bash
 cat flag.txt
+HTB{4_hug3_blund3r_d289a1_!!}
 ```
 
 ## the flag
 
-The session returned the flag in `HTB{...}` form, the kind that names this for what it is, a huge blunder. A hardcoded telnet credential baked into shipped firmware is a static password anyone with the image can read, and it logs in to every unit of that model on the network. Pulling the filesystem and grepping for login was enough to walk straight in. The name fits: the credential was one config line buried in a full firmware image, a needle in the haystack.
+The session returned `HTB{4_hug3_blund3r_d289a1_!!}`, the kind of flag that names this for what it is, a huge blunder. A hardcoded telnet credential baked into shipped firmware is a static password anyone with the image can read, and it logs in to every unit of that model on the network. Pulling the filesystem and grepping for login was enough to walk straight in. The name fits: the credential was one config line buried in a full firmware image, a needle in the haystack.

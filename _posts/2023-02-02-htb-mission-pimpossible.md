@@ -92,7 +92,11 @@ The flag characters are the lone non-asterisk bytes that appear right after each
 python3 csv_to_data.py data.csv | sed 's/*//g' | sed 's/Enter Password//g' | sed 's/ACCESS GRANDED SYSTEM DISARMED//g' | tr -d ' '
 ```
 
-That printed the flag on a single line, the PIN that the keypad had typed onto its own LCD over an I2C bus with no protection at all.
+That printed the flag on a single line, the PIN that the keypad had typed onto its own LCD over an I2C bus with no protection at all:
+
+```text
+HTB{84d_d3519n_c4n_134d_70_134k5!d@}
+```
 
 ## the flag
 
