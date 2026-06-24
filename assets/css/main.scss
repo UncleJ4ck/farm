@@ -803,20 +803,12 @@ a.sh-label {
   }
 }
 
-// Reading measure: cap the text-bearing elements so long-form prose holds a
-// ~75-char line, while code blocks, tables, and images keep the full column.
-.post .prose > p,
-.post .prose > ul,
-.post .prose > ol,
-.post .prose > h1,
-.post .prose > h2,
-.post .prose > h3,
-.post .prose > h4,
-.post .prose > h5,
-.post .prose > blockquote,
-.post .prose > .callout-key,
-.post .prose > .callout-warn {
-  max-width: 40rem;
+// Reading column: center the whole article at a comfortable measure so the
+// header, prose, and code share one balanced column instead of the body text
+// hugging the left under a full-width header.
+.post {
+  max-width: 46rem;
+  margin-inline: auto;
 }
 
 .post-header {
