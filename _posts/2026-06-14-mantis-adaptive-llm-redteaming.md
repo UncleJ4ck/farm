@@ -481,25 +481,23 @@ Two things to notice. First, on R2 the homoglyph obfuscation accomplished nothin
 The loop gets all the attention, but the loop is useless without something to ask. 844 test cases sit under 26 categories, and that corpus is the part of the project that traces straight back to Soufiane's original OWASP work. The categories map onto the OWASP Top 10 for LLM Applications 2025, then extend past it into the things that matter operationally but do not have an OWASP number.
 
 ```
-OWASP-mapped                          payloads
-  LLM01  prompt injection               62
-  LLM02  insecure output handling       28
-  LLM06  sensitive info disclosure      45
-  LLM08  excessive agency               31
-  ... (full top 10)
-
-operational categories                payloads
-  guardrail bypass                    189   <- the hard one, used here
-  jailbreak attempts                   87
-  malicious content                    76
-  multi-turn escalation                52
-  encoding attacks                     44
-  privacy exfiltration                 38
-  social engineering                   26
-  CBRN adjacent                        11   <- the floor that did not move
+by category, actual corpus (844 total)
+  jailbreak attempts             101   <- largest
+  agent exploitation              59
+  prompt injection                53
+  compliance / regulatory         46
+  encoding attacks                39
+  toxicity / content              39
+  hallucination / overreliance    32
+  multi-turn escalation           30
+  guardrail bypass                27   <- used for almost every run here
+  privacy exfiltration            23
+  bias / fairness                 21
+  ... (13 more named buckets)
+  uncategorized                  161
 ```
 
-Almost every number in this post comes from the guardrail-bypass category, because it is the largest (189 payloads) and the hardest, and because it is where the framing-versus-accumulation-versus-neither gradient is cleanest. The CBRN-adjacent set is small (11) but it is the one that exposes the real weight-level floor on the reasoning models. Different categories test different things. A model can be wide open on social engineering and a brick wall on CBRN, and a single blended percentage would average those into a meaningless middle. So the runs are per-category, and I report which category produced each number.
+Almost every number in this post comes from the guardrail-bypass category, 27 tests, the one I leaned on because it shows the framing-versus-accumulation-versus-neither gradient most cleanly across the model tiers. It is not the largest bucket (jailbreak is, at 101); it is the one that separates the model classes best. The CBRN-adjacent tests are a small handful, and the o4-mini hardest-CBRN runs used three of them; those are the ones that expose the real weight-level floor on the reasoning models. Different categories test different things. A model can be wide open on social engineering and a brick wall on CBRN, and a single blended percentage would average those into a meaningless middle. So the runs are per-category, and I report which category produced each number.
 
 ---
 
@@ -777,14 +775,14 @@ Mechanisms working is not the same as mechanisms helping, so I ran the experimen
 
 | model | ladder | ASR per rep | mean ASR | mean break-round |
 |---|---|---|---|---|
-| gemini-2.5-flash (frontier) | hand-tuned | 100, 83, 100 | 94.4% | 4.04 |
-| gemini-2.5-flash (frontier) | learned | 83, 100, 83 | 88.9% | **2.78** |
-| deepseek-chat (aligned) | hand-tuned | 67, 100, 100 | 88.9% | 1.53 |
-| deepseek-chat (aligned) | learned | 83, 83, 100 | 88.9% | 1.71 |
+| gemini-2.5-flash (frontier) | hand-tuned | 100, 83, 100 | 94.4% | 4.06 |
+| gemini-2.5-flash (frontier) | learned | 83, 100, 83 | 88.9% | **2.75** |
+| deepseek-chat (aligned) | hand-tuned | 67, 100, 100 | 88.9% | 1.50 |
+| deepseek-chat (aligned) | learned | 83, 83, 100 | 88.9% | 1.69 |
 
-Read the last column. On the frontier model the learned ladder broke the same tests in 2.78 rounds instead of 4.04, about thirty percent fewer, and it held across all three reps. It does not break more tests, the success rate is flat within noise. It breaks the same tests faster. That makes sense once you say it out loud: inside a fixed round budget the winning strategy eventually fires either way, so the rate saturates and the only thing left to win is how soon. The bandit front-loads the winner.
+Mean break-round is pooled over every break in the cell, so you can re-derive it straight from the run logs. Read the last column. On the frontier model the learned ladder broke the same tests in 2.75 rounds instead of 4.06, about a third fewer, and the gap held in all three reps (treatment 2.8, 2.33, 3.2 against control 4.5, 3.8, 3.83). It does not break more tests, the success rate is flat within noise. It breaks the same tests faster. That makes sense once you say it out loud: inside a fixed round budget the winning strategy eventually fires either way, so the rate saturates and the only thing left to win is how soon. The bandit front-loads the winner.
 
-On the aligned model, nothing. DeepSeek folds at round one or two no matter what, so there is no ordering left to improve and the tiny difference is noise. That is the honest, slightly boring result: the learning helps exactly where breaks are late and the rounds are expensive, and it is inert where they are early and cheap. Thirty percent fewer of the slow frontier calls per break is a real saving, and it lands precisely where the calls actually cost something.
+On the aligned model, nothing. DeepSeek folds at round one or two no matter what, so there is no ordering left to improve and the tiny difference is noise. That is the honest, slightly boring result: the learning helps exactly where breaks are late and the rounds are expensive, and it is inert where they are early and cheap. A third fewer of the slow frontier calls per break is a real saving, and it lands precisely where the calls actually cost something.
 
 The caveats, because a clean number from a small run is how you fool yourself. Six tests, three reps, one category, two models. Directional and replicated, not proof. And the frontier seed was built partly from earlier runs against that same model, so this measures reuse of a model's own history, which is the entire point of per-model learning but is not the same as generalizing to a model it has never seen. With no prior data the bandit is a no-op by construction. A real effect, measured honestly, with its limits stated. That is all I claim.
 
