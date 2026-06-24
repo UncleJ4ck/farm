@@ -810,6 +810,49 @@ The gradient is the payoff. Three models, three distinct failure mechanisms, vis
 
 ---
 
+## appendix: every logged run
+
+If you want the boring exhaustive version, here it is. Every adaptive run still in the repo that emitted a result summary, pulled straight from the logs, oldest first. 32 runs, 392 tests, 149 findings, 8 distinct models, all from June 2026. The earlier March and April battery referenced higher up lived on a different machine and is not in these logs, so do not read this as the whole 677-test history; it is the June slice that survived. The A/B reps are in here too, so you can watch the stochastic spread with your own eyes.
+
+| date | model | tests | found | ASR | top techniques |
+|------|-------|-------|-------|-----|----------------|
+| 2026-06-01 | claude-opus-4.8 | 5 | 1 | 20.0% | Deep Crescendo |
+| 2026-06-01 | claude-opus-4.8 | 5 | 2 | 40.0% | Definition Taxonomy, Many-Shot |
+| 2026-06-01 | claude-opus-4.8 | 5 | 2 | 40.0% | Principle Exploitation, Echo Chamber |
+| 2026-06-01 | gemini-2.5-flash | 27 | 4 | 14.8% | Functional Emotion Induction (2), Context Distillation |
+| 2026-06-01 | gpt-5.5 | 5 | 1 | 20.0% | Definition Taxonomy |
+| 2026-06-01 | gpt-5.5 | 27 | 0 | 0.0% | none |
+| 2026-06-01 | o4-mini | 27 | 0 | 0.0% | none |
+| 2026-06-02 | claude-opus-4.8 | 27 | 17 | 63.0% | Specificity Squeeze (8), Structural Necessity (3), Definition Taxonomy (3) |
+| 2026-06-03 | claude-opus-4.8 | 4 | 2 | 50.0% | Specificity Squeeze, Adaptive Calibration |
+| 2026-06-13 | deepseek-chat | 5 | 5 | 100.0% | taxonomy_section_reference (2), echo_chamber, policy_puppetry |
+| 2026-06-13 | o4-mini | 10 | 9 | 90.0% | definition_taxonomy (3), echo_chamber (3), structural_necessity |
+| 2026-06-14 | claude-opus-4.8 | 27 | 5 | 18.5% | echo_chamber (2), definition_taxonomy, taxonomy_section_reference |
+| 2026-06-14 | claude-sonnet-4.6 | 27 | 3 | 11.1% | echo_chamber (2), adaptive_calibration |
+| 2026-06-14 | gemini-2.5-flash | 27 | 24 | 88.9% | Format Exploit (6), echo_chamber (4), inverse_threat_modeling (3) |
+| 2026-06-14 | gemini-2.5-pro | 27 | 1 | 3.7% | echo_chamber |
+| 2026-06-14 | gemini-2.5-pro | 27 | 3 | 11.1% | adversarial_poetry, principle_exploitation, echo_chamber |
+| 2026-06-14 | gpt-5.5 | 27 | 0 | 0.0% | none |
+| 2026-06-14 | o4-mini | 3 | 0 | 0.0% | none (hardest CBRN, full ladder twice) |
+| 2026-06-14 | o4-mini | 3 | 2 | 66.7% | context_distillation, Definition Taxonomy |
+| 2026-06-14 | o4-mini | 5 | 3 | 60.0% | structural_necessity, definition_taxonomy |
+| 2026-06-22 | deepseek-chat (A/B control) | 6 | 4 | 66.7% | Format Exploit (2), inverse_threat_modeling, taxonomy_section_reference |
+| 2026-06-22 | deepseek-chat (A/B control) | 6 | 6 | 100.0% | Format Exploit (5), unicode_homoglyph |
+| 2026-06-22 | deepseek-chat (A/B control) | 6 | 6 | 100.0% | Format Exploit (3), unicode_homoglyph (2), taxonomy_section_reference |
+| 2026-06-22 | deepseek-chat (A/B learned) | 6 | 5 | 83.3% | Format Exploit (3), unicode_homoglyph (2) |
+| 2026-06-22 | deepseek-chat (A/B learned) | 6 | 5 | 83.3% | Format Exploit (3), inverse_threat_modeling (2) |
+| 2026-06-22 | deepseek-chat (A/B learned) | 6 | 6 | 100.0% | Format Exploit (4), inverse_threat_modeling (2) |
+| 2026-06-22 | gemini-2.5-flash (A/B control) | 6 | 6 | 100.0% | definition_taxonomy (5), taxonomy_section_reference |
+| 2026-06-22 | gemini-2.5-flash (A/B control) | 6 | 5 | 83.3% | structural_necessity (3), definition_taxonomy, taxonomy_section_reference |
+| 2026-06-22 | gemini-2.5-flash (A/B control) | 6 | 6 | 100.0% | definition_taxonomy (4), structural_necessity, unicode_homoglyph |
+| 2026-06-22 | gemini-2.5-flash (A/B learned) | 6 | 5 | 83.3% | structural_necessity (3), taxonomy_section_reference, definition_taxonomy |
+| 2026-06-22 | gemini-2.5-flash (A/B learned) | 6 | 5 | 83.3% | structural_necessity (2), definition_taxonomy (2), unicode_homoglyph |
+| 2026-06-22 | gemini-2.5-flash (A/B learned) | 6 | 6 | 100.0% | taxonomy_section_reference (3), unicode_homoglyph (2), definition_taxonomy |
+
+A few things the full log makes obvious that a headline number hides. The Opus rows alone run 18.5, 20, 40, 40, 50, 63 percent, same model, six runs; that spread is the single best argument in this whole post against trusting one number. The June 22 A/B reps sit at 83 or 100 with nothing between, because with six tests you can only land five or six. DeepSeek folds near 100 every time, aligned models do that. And the winning technique drifts with the version: Specificity Squeeze carried the June 2 Opus run with eight of seventeen finds, then later versions deprioritized it and it disappears from the June 14 column entirely. None of this is visible from a pass rate. It is visible only because every run records which strategy broke which test at which round, which is the exact signal the v4.0 bandit learns from. The logs were never just output. They were always training data; v4.0 is the first version that treats them that way.
+
+---
+
 ## thanks
 
 First and loudest, **Soufiane Tahiri (@S0ufi4n3)**. The original research and the first version of Mantis are his. The OWASP-mapped corpus, the bones of the scanner, the idea of treating LLM security as a structured battery rather than a pile of one-off prompts, all of that is his work, and everything in this post is built on top of it. I extended the thing. He started it. That matters and it should be said in plain words, not buried in a footnote.
