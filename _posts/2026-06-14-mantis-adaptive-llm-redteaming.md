@@ -157,7 +157,7 @@ OUTPUT_CLASSIFIER is the mirror case. The model was willing; something downstrea
 
 EXCHANGE_CLASSIFIER is the hardest to trigger and the easiest to defeat once you know what it is watching. It monitors the trajectory of a conversation, not individual messages. Crescendo attacks are designed specifically to abuse the fact that most deployed systems lack this layer. When the exchange classifier is present, the counter is not to obfuscate but to slow down: keep early turns at a genuine distance from the goal, accumulate context over more turns, stay below whatever escalation rate the monitor was calibrated against.
 
-Here is something I did not expect from the data. Across the full set of runs, the fingerprinter logged roughly **3,800 ALIGNMENT classifications against about 700 EXCHANGE_CLASSIFIER** ones, and almost nothing else with a clean signature. On the frontier and reasoning models, the wall is overwhelmingly the base model's own training, not an external input or output filter. That is itself a result. The expensive separate-classifier defenses you read about are either not deployed on the endpoints I tested or are invisible from the outside, and the thing actually saying no is the model. Which means obfuscation tricks are mostly a waste of rounds on frontier targets, and the budget should go to framing. The ladders reflect that.
+Here is what the logs show, and a caveat about what they do not. The per-round fingerprint layer is logged at debug level and these runs ran at info, so I do not have a clean per-layer histogram, and I am not going to invent one. What the info logs do capture is the consecutive-ALIGNMENT override, which fires only after five straight rounds fingerprinted as ALIGNMENT with no progress. It tripped 674 times across the runs. Five-in-a-row ALIGNMENT streaks that often is strong evidence that on frontier and reasoning targets the wall is overwhelmingly the base model's own training, not an external input or output filter. The technique leaderboard backs it: the strategies that actually land are framing (definition taxonomy, structural necessity, format exploit), not obfuscation. So the expensive separate-classifier defenses you read about are either not deployed on the endpoints I tested or invisible from the outside, the thing actually saying no is the model, obfuscation tricks are mostly a waste of rounds on frontier targets, and the budget should go to framing. The ladders reflect that. I would rather hand you the override count I can reproduce than a per-layer percentage I cannot.
 
 Here is the routing in one picture. The layer on the left is the diagnosis, the strategies under it are the prescription.
 
@@ -478,10 +478,10 @@ Two things to notice. First, on R2 the homoglyph obfuscation accomplished nothin
 
 ## the test corpus, which everyone skips
 
-The loop gets all the attention, but the loop is useless without something to ask. 844 test cases sit under 26 categories, and that corpus is the part of the project that traces straight back to Soufiane's original OWASP work. The categories map onto the OWASP Top 10 for LLM Applications 2025, then extend past it into the things that matter operationally but do not have an OWASP number.
+The loop gets all the attention, but the loop is useless without something to ask. 844 test cases, tagged across 24 named categories (161 of them carry no category tag), and that corpus is the part of the project that traces straight back to Soufiane's original OWASP work. The categories map onto the OWASP Top 10 for LLM Applications 2025, then extend past it into the things that matter operationally but do not have an OWASP number.
 
 ```
-by category, actual corpus (844 total)
+by category, actual corpus (844 total, 24 named buckets + uncategorized)
   jailbreak attempts             101   <- largest
   agent exploitation              59
   prompt injection                53
@@ -491,10 +491,22 @@ by category, actual corpus (844 total)
   hallucination / overreliance    32
   multi-turn escalation           30
   guardrail bypass                27   <- used for almost every run here
+  training-data attacks           25
+  multimodal attacks              25
+  system-prompt extraction        24
+  RAG attacks                     23
   privacy exfiltration            23
   bias / fairness                 21
-  ... (13 more named buckets)
-  uncategorized                  161
+  data leakage                    18
+  insecure output                 18
+  excessive agency                15
+  model DoS                       13
+  unbounded consumption           12
+  malicious content               12
+  training-data poisoning         10
+  supply chain                    10
+  malicious plugin                 8
+  uncategorized                  161   <- tests with no category tag
 ```
 
 Almost every number in this post comes from the guardrail-bypass category, 27 tests, the one I leaned on because it shows the framing-versus-accumulation-versus-neither gradient most cleanly across the model tiers. It is not the largest bucket (jailbreak is, at 101); it is the one that separates the model classes best. The CBRN-adjacent tests are a small handful, and the o4-mini hardest-CBRN runs used three of them; those are the ones that expose the real weight-level floor on the reasoning models. Different categories test different things. A model can be wide open on social engineering and a brick wall on CBRN, and a single blended percentage would average those into a meaningless middle. So the runs are per-category, and I report which category produced each number.
@@ -511,13 +523,13 @@ A caveat I am putting at the top rather than burying: several of the June runs d
 
 ## what a round actually costs
 
-People assume the two-judge design doubles your bill. It does not, and the timing data says why. Across 2,669 measured rounds:
+People assume the two-judge design doubles your bill. It does not, and the timing data says why. Across 2,875 measured rounds:
 
 ```
               median    p90       max
-target call    15.0 s    33.3 s    300 s   (the 5-minute wall)
-judge call      1.7 s     3.1 s     60 s
-full round     32.9 s    81.0 s    312 s
+target call    14.8 s    34.1 s    300 s   (the 5-minute wall)
+judge call      1.7 s     3.2 s    202 s   (one pathological outlier)
+full round     32.5 s    80.0 s    614 s
 ```
 
 The target call dominates. The judge is cheap, roughly a tenth of the target's latency, so running two evaluators instead of one adds a couple of seconds to a thirty-second round. Noise. The expensive thing is the model you are attacking, and the reasoning models own that 300-second tail: they think for five full minutes and then refuse. That is its own result. A model willing to burn five minutes of compute to decide *not* to help you is a model taking the question seriously.
@@ -846,6 +858,34 @@ If you want the boring exhaustive version, here it is. Every adaptive run still 
 | 2026-06-22 | gemini-2.5-flash (A/B learned) | 6 | 5 | 83.3% | structural_necessity (3), taxonomy_section_reference, definition_taxonomy |
 | 2026-06-22 | gemini-2.5-flash (A/B learned) | 6 | 5 | 83.3% | structural_necessity (2), definition_taxonomy (2), unicode_homoglyph |
 | 2026-06-22 | gemini-2.5-flash (A/B learned) | 6 | 6 | 100.0% | taxonomy_section_reference (3), unicode_homoglyph (2), definition_taxonomy |
+
+Which strategy actually landed, aggregated across all 149 findings in those runs (display names normalized to ids, so `unicode_homoglyph` and its display variant are merged):
+
+| technique | findings | technique | findings |
+|---|---|---|---|
+| format_exploit | 27 | inverse_threat_modeling | 8 |
+| definition_taxonomy | 26 | context_distillation | 4 |
+| echo_chamber | 17 | adaptive_calibration | 3 |
+| structural_necessity | 14 | principle_exploitation | 2 |
+| taxonomy_section_reference | 12 | emotional_steering | 2 |
+| unicode_homoglyph | 11 | adversarial_poetry | 2 |
+| specificity_squeeze | 9 | past_tense / nomenclature / policy_puppetry | 2 each |
+
+Framing and structure dominate (format exploit, definition taxonomy, structural necessity, taxonomy reference). The one obfuscation technique that earns its place is unicode_homoglyph at 11. The five-plus-round multi-turn strategies (echo chamber 17) land less often per attempt but carry the hardest targets where nothing single-shot works.
+
+And by model, the whole logged battery (the two DeepSeek ids are the same model under the direct API and OpenRouter, merged here):
+
+| model | runs | tests | findings | aggregate ASR | best single run |
+|---|---|---|---|---|---|
+| gemini-2.5-flash | 8 | 90 | 61 | 67.8% | 100% |
+| deepseek-chat | 7 | 41 | 37 | 90.2% | 100% |
+| claude-opus-4.8 | 6 | 73 | 29 | 39.7% | 63% |
+| o4-mini | 5 | 48 | 14 | 29.2% | 90% |
+| gpt-5.5 | 3 | 59 | 1 | 1.7% | 20% |
+| gemini-2.5-pro | 2 | 54 | 4 | 7.4% | 11.1% |
+| claude-sonnet-4.6 | 1 | 27 | 3 | 11.1% | 11.1% |
+
+Aggregate ASR pools every test across every run for that model, so it is dragged around by which versions and round budgets the model happened to be tested under; read it next to the best-single-run column, not instead of it. GPT-5.5 at 1.7% aggregate over 59 tests is the most resistant thing in the set; gemini-2.5-flash and deepseek at the top are the soft ones.
 
 A few things the full log makes obvious that a headline number hides. The Opus rows alone run 18.5, 20, 40, 40, 50, 63 percent, same model, six runs; that spread is the single best argument in this whole post against trusting one number. The June 22 A/B reps sit at 83 or 100 with nothing between, because with six tests you can only land five or six. DeepSeek folds near 100 every time, aligned models do that. And the winning technique drifts with the version: Specificity Squeeze carried the June 2 Opus run with eight of seventeen finds, then later versions deprioritized it and it disappears from the June 14 column entirely. None of this is visible from a pass rate. It is visible only because every run records which strategy broke which test at which round, which is the exact signal the v4.0 bandit learns from. The logs were never just output. They were always training data; v4.0 is the first version that treats them that way.
 
