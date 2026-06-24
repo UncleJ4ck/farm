@@ -19,7 +19,7 @@ I lined up the payment controllers and read the route signatures. Authorize.Net 
 This is not from a git blame or my memory. I pulled it out of the live `odoo:19.0` image I tested against:
 
 ```python
-# addons/payment_xendit/controllers/main.py  (odoo:19.0, image built 2026-04-21)
+# addons/payment_xendit/controllers/main.py  (odoo:19.0, the image I tested)
 @http.route('/payment/xendit/payment', type='jsonrpc', auth='public')
 def xendit_payment(self, reference, token_ref, auth_id=None):
     tx_sudo = request.env['payment.transaction'].sudo().search([('reference', '=', reference)])
@@ -128,7 +128,7 @@ By the numbers I scored it `AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:H/A:L` = 8.6, CWE-862 
 
 ## fix status, verified not assumed
 
-The fix exists in Odoo's source tree, commit `[FIX] payment_xendit: link access token to the current transaction`, which adds the missing guard and updates the client JS to send the token like every other provider:
+The fix is the one guard every sibling already carries. This is the shape it takes, the missing `check_access_token` dropped in before the charge:
 
 ```python
 def xendit_payment(self, reference, token_ref, access_token, auth_id=None):
@@ -138,7 +138,7 @@ def xendit_payment(self, reference, token_ref, access_token, auth_id=None):
     tx_sudo._xendit_create_charge(token_ref, auth_id=auth_id)
 ```
 
-But the controller block I pasted above is the one running in the `odoo:19.0` image built 2026-04-21, and it is still the three-line vulnerable version. So as of that image the patch has not shipped to the stable tag, and the `draft -> error` proof was captured on it. The fix is in the source, the release lags. No CVE was assigned; Odoo handled it as a normal commit and keeps its detailed advisories behind the enterprise portal.
+The controller block I pasted above is the one running in the `odoo:19.0` image I tested, still the three-line vulnerable version, which is where the `draft -> error` proof was captured. The report was accepted (final Medium 5.3 after Odoo requalified integrity to low) and Odoo resolved it on 2026-06-23 in commit [`6cea53e0`](https://github.com/odoo/odoo/commit/6cea53e0ae7287a4aaffc10efa2730511e8309cf). No CVE was assigned; Odoo handled it as a normal commit.
 
 ## references
 

@@ -106,7 +106,7 @@ So the contact-info leak is closed on the current image. Good. But notice what t
 }}
 ```
 
-The `table_identifier` is mine (`f05c8ddf`), the `uuid` is Charlie's. I send `amount_total: 0`, but the total in the response is not mine to set. `sync_from_ui` runs the lines through `recompute_prices` server-side, so three burgers at 12.50 plus tax land Charlie's order at 57.51. The attacker writes the items, the server does the pricing.
+The `table_identifier` is mine (`f05c8ddf`), the `uuid` is Charlie's. I send `amount_total: 0`, but the total in the response is not mine to set. `sync_from_ui` runs the lines through `recompute_prices` server-side, so the three burgers at 12.50 I append to his existing 12.50 order get repriced with tax and land his total at 57.51. The attacker writes the items, the server does the pricing.
 
 ```
 === 3. order hijack (not fixed by PR 259915) ===
@@ -120,7 +120,7 @@ The `table_identifier` is mine (`f05c8ddf`), the `uuid` is Charlie's. I send `am
 
 ![Rewriting another table's POS order on a live odoo:19.0, receipt redirected and bill inflated with only the shared QR token]({{ '/assets/img/posts/odoo-pos-self-order.png' | relative_url }})
 
-That is a live result on the current image. Charlie is at another table. I changed the email on his order to mine, so his receipt and any notification go to me, and I appended three burgers through the line write, so the server recomputed his total from 12.50 to 57.51. He pays 57.51 at the counter, or his confirmation lands in my inbox. All I held was the QR token any customer gets and his order `uuid`, which the API handed me a request earlier. I never needed his per-order `access_token`.
+That is a live result on the current image. Charlie is at another table. I changed the email on his order to mine, so his receipt and any notification would go to me, and I appended three burgers through the line write, so the server recomputed his total from 12.50 to 57.51. He pays 57.51 at the counter, and his confirmation would land in my inbox. All I held was the QR token any customer gets and his order `uuid`, which the API handed me a request earlier. I never needed his per-order `access_token`.
 
 ## the deletion, and an honest caveat
 
@@ -144,11 +144,11 @@ Honest note on this one. `remove-order` checks the per-order `access_token` with
 
 I submitted it at `AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N` = 8.2. The C:H is deliberate and worth defending: within the POS self-order component for one config, the attacker obtains 100% of the confidential data it manages, every active customer's email, phone, and per-order token, across every table, with no cap on how many. C:L is "no control over what is obtained, or limited loss"; here the attacker controls the enumeration (`/pos-self/data` hands out all identifiers, `order_access_tokens: []` works) and gets the complete PII set. The data set is narrow but it is the whole set, so C:H fits and C:L does not.
 
-Accepted at Medium. Odoo settled the rating after downgrading attack complexity (you need to be near the restaurant for the token) and arguing email plus name is not highly confidential, which pulled confidentiality down and landed the score at 6.5.
+Accepted at Medium. Odoo raised attack complexity to high, because you need physical access to the restaurant to scan the QR for the token, and that is what dropped the score to 6.5. They also argued email plus name is not highly confidential but let the confidentiality rating stand.
 
-I conceded the confidentiality call, that one was theirs to make. The metric I pushed back on was integrity. Once the same payload rewrites a stranger's bill and redirects their receipt, `I:L` does not hold; modifying another customer's financial record and changing their billing contact is `I:H`, which takes the score from 6.5 back to 8.2. The point I leaned on with the triager: the write path is a different code path from the leak. PR 259915 touched `_generate_return_values` and what gets sent back to the caller. It never touched `sync_from_ui`, where the order is located by client-supplied `uuid` and written with no ownership check. Two separate bugs, one fix, and the fix only covered one of them. I offered to file the write path separately.
+I conceded the confidentiality call, that one was theirs to make. The metric I pushed back on was integrity. Once the same payload rewrites a stranger's bill and changes the billing email on their order, `I:L` does not hold; modifying another customer's financial record is the total loss `I:H` describes, not the constrained modification of `I:L`. The point I leaned on with the triager: the write path is a different code path from the leak. PR 259915 touched `_generate_return_values` and what gets sent back to the caller. It never touched `sync_from_ui`, where the order is located by client-supplied `uuid` and written with no ownership check. Two separate bugs, one fix, and the fix only covered one of them. I offered to file the write path separately.
 
-The cross-table order visibility was a deliberate 19.0 feature and was changed in 19.2. I think the accepted-risk call is fair for the identifiers and weak for the write path, where the consequence is editing someone else's order and redirecting their receipt, not reading a token they could scan off a table. No CVE was assigned.
+The cross-table order visibility was a deliberate 19.0 feature and was changed in 19.2, so Odoo ruled the table-token leak and the cross-table write an accepted risk for 19.0. The report was accepted at Medium and resolved on 2026-06-23 in commit [`b19da99b`](https://github.com/odoo/odoo/commit/b19da99bb64722ff74c7bda95c667c42d89f55d1), which strips `email` and `mobile` from the response. I think the accepted-risk call is fair for the identifiers and weak for the write path, where the consequence is editing someone else's order and redirecting their receipt, not reading a token they could scan off a table. No CVE was assigned.
 
 The lesson the commit history teaches by accident: read what your fix returns, not what it deletes. And when you strip the fields that look like PII, check whether the identifier you left behind is the key to a write you never locked.
 
