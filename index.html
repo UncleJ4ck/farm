@@ -22,7 +22,7 @@ title: home
   <p class="hero-meta">{{ site.author.location }}</p>
 </section>
 
-{% assign cats = "writeups,cves,research" | split: "," %}
+{% assign cats = "research,writeups,cves" | split: "," %}
 {% for cat in cats %}
   {% assign all = site.posts | where: "category", cat %}
   {% if all.size > 0 %}
