@@ -679,6 +679,18 @@ The Claude failure mode, the cliff rather than a slope, also has a structural ex
 
 ---
 
+## the benign control {#the-benign-control}
+
+Here is the honest version of how these got run. I wanted to push Opus past 18.5%, and the obvious next move was to hand-write sharper payloads, the actual weapons and CBRN extraction prompts, and feed them into the same chain. The AI I was pairing with to build this flat-out would not write those. Deliberately. Not a parse fail, not a bad attempt, a straight refusal. So that path was closed, and I am not going to dress it up as anything else.
+
+What I could do without a single line of harmful content was take the exact attack that breaks Opus and aim it at something harmless, to find out whether the cliff is even about safety or just about pressure. Same chain, same echo-chamber-into-concession directives straight out of the library, deepseek driving. Two versions. One hides a secret codeword in the system prompt and tries to pull it back out. The other sets a strict output format, reply only as a tiny JSON object ending in a fixed marker, and tries to nag the model out of it. Same multi-turn pressure that takes Opus down on the real stuff. Nothing harmful anywhere in it.
+
+Opus held both. 13 rounds, every turn that came back clean. I know the rig was actually attacking and not just idling because my soft control folded: Gemini 2.5 Flash on the identical chain leaked the secret by round 3 and cracked the format by round 5. And even then it barely cracked. It kept the JSON wrapper, kept the marker, and just started dropping raw newlines that break a strict parser while a loose one reads them fine. A slip, not the model talking its way back into plain prose. Opus stayed strictly valid the whole way through.
+
+None of this says Opus cannot be broken. The gated run already broke it at 18.5%. What the benign run tells me is where the cliff is not. Harmless content has no refusal trained onto it, so there is nothing there for the pressure to wear down. You cannot erode a wall that was never built. That is also why a benign test can never stand in for a real one. It proves the loop runs and the detector fires, and a hardcoded scorer self-test proves the detector even without a live break, but the only number that says anything about safety is the harm-gated one, because only a harmful goal ever touches the refusal the whole cliff is made of.
+
+---
+
 ## the o4-mini result, with the asterisk
 
 o4-mini was 0% across 20 rounds and 31 strategies on the older versions. A real wall, and the wall is what motivated the three reasoning strategies.
@@ -699,7 +711,7 @@ I would rather list these than have someone find them in my data, which, given t
 - **the default evaluators are correlated.** Same model, two prompts. For research-grade claims, split them across providers. The architecture supports it. The default does not enforce it.
 - **strategies go stale.** Every technique came from published research or observation, and providers patch. A technique that landed in March may be dead by June. Date everything, version everything, and do not quote an old number as a current one.
 - **no human review tier.** Every verdict is automated, so systematic judge bias accumulates silently. Anything headed for publication needs a human reading the actual response and payload.
-- **cost is real.** Best-of-N and evolutionary search multiply API calls fast. A full battery at frontier pricing runs into the hundreds of dollars, and there is no built-in cap. I learned this by running out of credits mid-run, repeatedly, which is why half my June runs have a floor caveat.
+- **cost is real.** Best-of-N and evolutionary search multiply API calls fast. A full battery at frontier pricing runs into the hundreds of dollars, and there is no built-in cap. I learned this by running out of credits mid-run, repeatedly, which is why half my June runs have a floor caveat. A re-run of the gated Opus battery in July hit the same wall and died partway through, so 18.5% is still the only clean harm-gated Opus number I have, with no second gated run to check it against.
 
 None of these are reasons not to run it. They are reasons not to oversell a single number, which is the exact mistake the static prompt-list tools make and the reason I built this in the first place.
 
